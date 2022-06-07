@@ -640,7 +640,8 @@ This should only be run as an export hook."
 
 (defvar org-glossary--font-lock-keywords
   '((org-glossary--fontify-find-next
-     (0 'org-glossary-term t)))
+     (0 '(face org-glossary-term
+               help-echo org-glossary--term-help-echo) t)))
   "`font-lock-keywords' entry that fontifies term references.")
 
 (define-minor-mode org-glossary-mode
@@ -710,6 +711,25 @@ This should only be run as an export hook."
       (widen)
       (font-lock-flush)))
   (org-glossary-apply-terms org-glossary--terms t))
+
+(defun org-glossary--term-help-echo (_window object pos)
+  "Find the term reference at POS in OBJECT, and get the definition."
+  (when-let ((term-entry
+              (org-glossary--quicklookup
+               (with-current-buffer object
+                 (buffer-substring-no-properties
+                  (previous-single-property-change (1+ pos) 'face)
+                  (next-single-property-change pos 'face))))))
+    (format "(%s) %s %s"
+            (propertize
+             (symbol-name (plist-get term-entry :type))
+             'face 'org-table)
+            (propertize
+             (plist-get term-entry :term)
+             'face 'org-list-dt)
+            (string-trim
+             (org-element-interpret-data
+              (plist-get term-entry :value))))))
 
 (provide 'org-glossary)
 ;;; org-glossary.el ends here
