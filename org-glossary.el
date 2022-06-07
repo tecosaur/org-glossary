@@ -618,8 +618,7 @@ types will be used."
       (concat word "s"))
      (t (concat word "s")))))
 
-;;; Hooking into org-mode
-
+;;; Export
 
 (defun org-glossary--prepare-buffer (&optional _backend)
   "Modify the buffer to resolve all defined terms, prepearing it for export.
@@ -632,13 +631,59 @@ This should only be run as an export hook."
       (goto-char (point-max))
       (insert "\n" (org-element-interpret-data glossary-section)))))
 
+(add-hook 'org-export-before-parsing-hook #'org-glossary--prepare-buffer)
+
+;;; Fontification
+
+(defvar-local org-glossary--term-regexp nil
+  "A regexp matching all known forms of terms.")
+
+(defvar org-glossary--font-lock-keywords
+  '((org-glossary--fontify-find-next
+     (0 'org-glossary-term t)))
+  "`font-lock-keywords' entry that fontifies term references.")
+
+(define-minor-mode org-glossary-mode
+  "Glossary term fontification, and enhanced interaction."
+  :global nil
+  :group 'org-glossary
+  (cond
+   (org-glossary-mode
+    (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append)
+    (org-glossary-update-terms))
+   (t (font-lock-remove-keywords nil org-glossary--font-lock-keywords)
+      (save-restriction
+        (widen)
+        (font-lock-flush)))))
+
+(defun org-glossary--fontify-find-next (&optional limit)
+  "Find any next occurance of a term reference, for fontification."
+  (let (match-p exit element-context)
+    (while (and (not exit) (if limit (< (point) limit) t))
+      (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
+      (setq element-context (org-element-context (org-element-at-point)))
+      (when (and (memq 'link (org-element-restriction element-context))
+                 (save-match-data
+                   (not (org-glossary--within-definition-p element-context))))
+        ;; HACK For some strange reason, if I don't move point forwards
+        ;; here, this function will end up being called again and again
+        ;; ad-infinitum.  Strangely, while (forward-char 1) works
+        ;; (goto-char (match-end 0)) does not.  What on earth is happening?
+        ;; Please send help.
+        (forward-char (length (match-string 0)))
+        (setq exit t match-p t)))
+    match-p))
+
 (defun org-glossary-update-terms ()
   "Update the currently known terms."
   (interactive)
-  (setq org-glossary--terms (org-glossary--extract-terms))
+  (setq org-glossary--terms (org-glossary--extract-terms)
+        org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms))
+  (when org-glossary-mode
+    (save-restriction
+      (widen)
+      (font-lock-flush)))
   (org-glossary-apply-terms org-glossary--terms t))
-
-(add-hook 'org-export-before-parsing-hook #'org-glossary--prepare-buffer)
 
 (provide 'org-glossary)
 ;;; org-glossary.el ends here
