@@ -675,7 +675,7 @@ This should only be run as an export hook."
         ;; ad-infinitum.  Strangely, while (forward-char 1) works
         ;; (goto-char (match-end 0)) does not.  What on earth is happening?
         ;; Please send help.
-        (forward-char (length (match-string 0)))
+        (forward-char 1)
         (setq exit t match-p t)))
     match-p))
 
