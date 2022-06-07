@@ -29,11 +29,11 @@
 ;;
 ;; DONE add exporters for the glossary etc. links
 ;;
-;; TODO make He export formatting/style customisable
+;; TODO make the export formatting/style customisable
 ;;
 ;; TODO load terms from #+include'd files
 ;;
-;; TODO fontification of terms
+;; DONE fontification of terms
 ;;
 ;; TODO jump to definition/usages
 ;;
