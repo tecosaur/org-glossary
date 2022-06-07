@@ -210,12 +210,13 @@ the second match group indicates plurality, as specified with
             (regexp-opt (funcall terms-collect terms :key) t)
             "\\>")))
 
-(defun org-glossary--apply-terms (terms &optional no-modify)
+(defun org-glossary-apply-terms (terms &optional no-modify no-number)
   "Replace occurances of the TERMS with links.
 This modifies TERMS to record uses of each term.
 
 When NO-MODIFY is non-nil, the reference will be lodged in
 TERMS but the buffer content left unmodified."
+  (interactive (list org-glossary--terms nil t))
   (let ((terms-rx (org-glossary--construct-regexp terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
         (case-fold-search nil)
@@ -229,13 +230,13 @@ TERMS but the buffer content left unmodified."
          ((org-glossary--within-definition-p element-context) nil) ; skip
          ((eq 'link (org-element-type element-context))
           (push (plist-get (org-glossary--update-link
-                            terms element-context no-modify)
+                            terms element-context no-modify no-number)
                            :key)
                 terms-used))
          ((and org-glossary-automatic
                (memq 'link (org-element-restriction element-context)))
           (push (plist-get (org-glossary--update-plain
-                            terms no-modify)
+                            terms no-modify no-number)
                            :key)
                 terms-used)))))
     (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
@@ -265,10 +266,11 @@ TERMS but the buffer content left unmodified."
        (or (= 1 (org-element-property :level heading))
            (not org-glossary-toplevel-only))))
 
-(defun org-glossary--update-link (terms link &optional no-modify)
+(defun org-glossary--update-link (terms link &optional no-modify no-number)
   "Register LINK's reference to a term in TERMS, and update numbering.
 When NO-MODIFY is non-nil, the reference will be lodged in
-TERMS but the buffer content left unmodified."
+TERMS but the buffer content left unmodified.
+When NO-NUMBER is non-nil, no reference number shall be inserted."
   (when (member (org-element-property :type link)
                 '("gls" "glspl" "Gls" "Glspl"))
     (let* ((trm (replace-regexp-in-string
@@ -277,7 +279,8 @@ TERMS but the buffer content left unmodified."
            (term-entry (org-glossary--find-term-entry terms trm :key))
            (index (org-glossary--record-term-usage term-entry link)))
       (org-element-put-property
-       link :path (concat (number-to-string index) ":" trm))
+       link :path (if no-number trm
+                    (concat (number-to-string index) ":" trm)))
       (unless no-modify
         (replace-region-contents
          (org-element-property :begin link)
@@ -285,14 +288,15 @@ TERMS but the buffer content left unmodified."
          (org-element-link-interpreter link nil)))
       term-entry)))
 
-(defun org-glossary--update-plain (terms &optional no-modify)
+(defun org-glossary--update-plain (terms &optional no-modify no-number)
   "Register a reference to a term in TERMS, and convert to a link.
 It is assumed that the term reference has just been matched with
 a regexp of the form given by `org-glossary--construct-regexp'
 and the match data is intact.
 
 When NO-MODIFY is non-nil, the reference will be lodged in
-TERMS but the buffer content left unmodified."
+TERMS but the buffer content left unmodified.
+When NO-NUMBER is non-nil, no reference number shall be inserted."
   (let ((term-str
          (replace-regexp-in-string
           "[ \n\t]+" " "
@@ -317,7 +321,9 @@ TERMS but the buffer content left unmodified."
       (unless no-modify
         (replace-match
          (org-glossary--term-replacement
-          term-entry (1+ (length (plist-get term-entry :uses)))
+          term-entry
+          (unless no-number
+            (1+ (length (plist-get term-entry :uses))))
           plural-p capitalized-p)
          t t))
       (org-glossary--record-term-usage
@@ -609,7 +615,7 @@ types will be used."
 This should only be run as an export hook."
   (setq org-glossary--terms (org-glossary--extract-terms))
   (org-glossary--strip-headings nil nil nil t)
-  (let* ((used-terms (org-glossary--apply-terms org-glossary--terms))
+  (let* ((used-terms (org-glossary-apply-terms org-glossary--terms))
          (glossary-section (org-glossary--print-terms used-terms)))
     (save-excursion
       (goto-char (point-max))
@@ -619,7 +625,7 @@ This should only be run as an export hook."
   "Update the currently known terms."
   (interactive)
   (setq org-glossary--terms (org-glossary--extract-terms))
-  (org-glossary--apply-terms org-glossary--terms t))
+  (org-glossary-apply-terms org-glossary--terms t))
 
 (add-hook 'org-export-before-parsing-hook #'org-glossary--prepare-buffer)
 
