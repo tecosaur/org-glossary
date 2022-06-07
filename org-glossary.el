@@ -284,8 +284,9 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
       (unless no-modify
         (replace-region-contents
          (org-element-property :begin link)
-         (org-element-property :end link)
-         (org-element-link-interpreter link nil)))
+         (- (org-element-property :end link)
+            (org-element-property :post-blank link))
+         (lambda () (org-element-link-interpreter link nil))))
       term-entry)))
 
 (defun org-glossary--update-plain (terms &optional no-modify no-number)
