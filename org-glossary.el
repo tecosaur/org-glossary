@@ -674,11 +674,37 @@ This should only be run as an export hook."
         (setq exit t match-p t)))
     match-p))
 
+;;; Interaction
+
+(defvar-local org-glossary--quicklookup-cache (make-hash-table :test #'equal)
+  "A hash table for quickly looking up a term-entry from a reference form.")
+
+(defun org-glossary--quicklookup (term-str)
+  "Find the term entry reffered to by TERM-STR."
+  (or (gethash term-str org-glossary--quicklookup-cache)
+      (puthash term-str
+               (or (org-glossary--find-term-entry
+                    org-glossary--terms term-str :key)
+                   (org-glossary--find-term-entry
+                    org-glossary--terms term-str :key-plural)
+                   (org-glossary--find-term-entry
+                    org-glossary--terms
+                    (concat (string (downcase (aref term-str 0)))
+                            (substring term-str 1))
+                    :key)
+                   (org-glossary--find-term-entry
+                    org-glossary--terms
+                    (concat (string (downcase (aref term-str 0)))
+                            (substring term-str 1))
+                    :key-plural))
+               org-glossary--quicklookup-cache)))
+
 (defun org-glossary-update-terms ()
   "Update the currently known terms."
   (interactive)
   (setq org-glossary--terms (org-glossary--extract-terms)
-        org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms))
+        org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms)
+        org-glossary--quicklookup-cache (make-hash-table :test #'equal))
   (when org-glossary-mode
     (save-restriction
       (widen)
