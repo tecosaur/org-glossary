@@ -1,0 +1,65 @@
+#+title: Org Glossary
+#+author: tecosaur
+
+#+html: <p><img src="https://img.shields.io/badge/Emacs-27.1+-blueviolet.svg?style=flat-square&logo=GNU%20Emacs&logoColor=white">
+#+html: <img src="https://img.shields.io/badge/stage-%CE%B1,%20experimental-red?style=flat-square">
+#+html: <a href="https://www.buymeacoffee.com/tecosaur"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"></a></p>
+
+* Functionality
+
+There are four major pieces of functionality this package provides
++ Glossary
++ Acronyms
++ Index
++ Text substitutions
+
+Within specially named sections, Glossary terms, Acronyms, and Text
+substitutions are defined using definition lists, using the following forms:
+#+begin_example
+- term :: definition         # implicit plural form
+- term, terms :: definition  # explicit plural form
+#+end_example
+
+Indexed terms are defined using normal lists, using the pattern of the
+definition list tags above.
+
+Then, all uses of defined terms in the document are picked up and on export
+Glossary/Acronym/Index sections are appended to the document.
+
+* Example
+
+#+begin_example
+Apple and ACRs, why not substitute something.
+: An apple and ACR, why not substitute something.
+
+Mentioning apple again, and now bananas.
+
+This is an org document.
+
+,* Glossary
+- apple :: A fruit.
+- banana :: Another fruit.
+- pear :: Yet another fruit.
+,* Acronyms
+- ACR :: Absolutely Credible acRonym
+,* Text Substitutions
+- substitute :: replace
+,* Index Terms
+- org
+#+end_example
+
+* Installation
+** Straight
+#+begin_src elisp
+(use-package org-glossary
+  :straight (:host github :repo "tecosaur/org-glossary"))
+#+end_src
+** Doom
+#+begin_src elisp
+;; $DOOMDIR/packages.el
+(package! org-glossary
+  :recipe (:host github :repo "tecosaur/org-glossary"))
+
+;; $DOOMDIR/config.el
+(use-package! org-glossary :after org)
+#+end_src
