@@ -172,6 +172,7 @@ side-effect when it is provided."
           :term-plural plural
           :type type
           :value value
+          :definition-pos (+ (org-element-property :begin item) 2)
           :uses nil)))
 
 (defun org-glossary--entry-type (datum)
@@ -641,7 +642,10 @@ This should only be run as an export hook."
 (defvar org-glossary--font-lock-keywords
   '((org-glossary--fontify-find-next
      (0 '(face org-glossary-term
-               help-echo org-glossary--term-help-echo) t)))
+               help-echo org-glossary--term-help-echo
+               keymap (keymap
+                       (follow-link . org-glossary-term-definition)
+                       (mouse-2 . org-glossary-term-definition))) t)))
   "`font-lock-keywords' entry that fontifies term references.")
 
 (define-minor-mode org-glossary-mode
@@ -730,6 +734,22 @@ This should only be run as an export hook."
             (string-trim
              (org-element-interpret-data
               (plist-get term-entry :value))))))
+
+(defun org-glossary-term-definition (&optional term-ref)
+  "Go to the definition of TERM-REF.
+TERM-REF may be a string or position in the buffer to look for a term.
+If TERM-REF is not given, the current point will be used."
+  (interactive)
+  (org-glossary-update-terms)
+  (when-let ((term-entry
+              (org-glossary--quicklookup
+               (or (and (stringp term-ref) term-ref)
+                   (buffer-substring-no-properties
+                    (previous-single-property-change
+                     (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
+                    (next-single-property-change
+                     (or (and (numberp term-ref) term-ref) (point)) 'face))))))
+    (goto-char (plist-get term-entry :definition-pos))))
 
 (provide 'org-glossary)
 ;;; org-glossary.el ends here
