@@ -663,6 +663,9 @@ This should only be run as an export hook."
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
+  ;; BUG it seems like putting any org link prefix like "http:" on a line
+  ;; disables all org-glossary fontification on the line?  No idea what's
+  ;; happening here.
   (let (match-p exit element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
       (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
