@@ -105,6 +105,10 @@ During export, all subtrees starting with this heading will be removed."
   "A function which generates the plural form of a word."
   :type 'function)
 
+(defface org-glossary-term
+  '((t :inherit (org-agenda-date-today org-link) :weight normal))
+  "Face used for term references.")
+
 (defvar-local org-glossary--terms nil
   "The currently known terms.")
 
@@ -497,14 +501,18 @@ types will be used."
 
 ;;; Link definitions
 
-(org-link-set-parameters
- "gls" :export #'org-glossary--link-export-gls)
-(org-link-set-parameters
- "glspl" :export #'org-glossary--link-export-glspl)
-(org-link-set-parameters
- "Gls" :export #'org-glossary--link-export-Gls)
-(org-link-set-parameters
- "Glspl" :export #'org-glossary--link-export-Glspl)
+(org-link-set-parameters "gls"
+                         :export #'org-glossary--link-export-gls
+                         :face 'org-glossary-term)
+(org-link-set-parameters "glspl"
+                         :export #'org-glossary--link-export-glspl
+                         :face 'org-glossary-term)
+(org-link-set-parameters "Gls"
+                         :export #'org-glossary--link-export-Gls
+                         :face 'org-glossary-term)
+(org-link-set-parameters "Glspl"
+                         :export #'org-glossary--link-export-Glspl
+                         :face 'org-glossary-term)
 
 (defun org-glossary--link-export-gls (it _description backend info)
   "Export a gls link to term IT with BACKEND."
@@ -558,10 +566,12 @@ types will be used."
              (funcall (if plural-p org-glossary-plural-function #'identity)
                       trm))))
 
-(org-link-set-parameters
- "glsdef" :export #'org-glossary--link-export-glsdef)
-(org-link-set-parameters
- "glsuse" :export #'org-glossary--link-export-glsuse)
+(org-link-set-parameters "glsdef"
+                         :export #'org-glossary--link-export-glsdef
+                         :face 'org-glossary-term)
+(org-link-set-parameters "glsuse"
+                         :export #'org-glossary--link-export-glsuse
+                         :face 'org-glossary-term)
 
 (defun org-glossary--link-export-glsdef (key term backend _info)
   (let* ((term-entry (org-glossary--find-term-entry
