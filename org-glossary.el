@@ -663,23 +663,20 @@ This should only be run as an export hook."
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
-  ;; BUG it seems like putting any org link prefix like "http:" on a line
-  ;; disables all org-glossary fontification on the line?  No idea what's
-  ;; happening here.
   (let (match-p exit element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
       (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
-      (setq element-context (org-element-context (org-element-at-point)))
-      (when (and (memq 'link (org-element-restriction element-context))
-                 (save-match-data
-                   (not (org-glossary--within-definition-p element-context))))
-        ;; HACK For some strange reason, if I don't move point forwards
-        ;; here, this function will end up being called again and again
-        ;; ad-infinitum.  Strangely, while (forward-char 1) works
-        ;; (goto-char (match-end 0)) does not.  What on earth is happening?
-        ;; Please send help.
-        (forward-char 1)
-        (setq exit t match-p t)))
+      (save-match-data
+        (setq element-context (org-element-context (org-element-at-point)))
+        (when (and (memq 'link (org-element-restriction element-context))
+                   (not (org-glossary--within-definition-p element-context)))
+          ;; HACK For some strange reason, if I don't move point forwards
+          ;; here, this function will end up being called again and again
+          ;; ad-infinitum.  Strangely, while (forward-char 1) works
+          ;; (goto-char (match-end 0)) does not.  What on earth is happening?
+          ;; Please send help.
+          (forward-char 1)
+          (setq exit t match-p t))))
     match-p))
 
 ;;; Interaction
