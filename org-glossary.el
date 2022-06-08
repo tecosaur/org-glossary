@@ -229,8 +229,7 @@ TERMS but the buffer content left unmodified."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward terms-rx nil t)
-        (setq element-context
-              (save-match-data (org-element-context (org-element-at-point))))
+        (setq element-context (save-match-data (org-element-context)))
         (cond
          ((org-glossary--within-definition-p element-context) nil) ; skip
          ((eq 'link (org-element-type element-context))
@@ -332,8 +331,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
             (1+ (length (plist-get term-entry :uses))))
           plural-p capitalized-p)
          t t))
-      (org-glossary--record-term-usage
-       term-entry (org-element-context (org-element-at-point)))
+      (org-glossary--record-term-usage term-entry (org-element-context))
       term-entry)))
 
 (defun org-glossary--find-term-entry (terms term-key key)
@@ -667,7 +665,7 @@ This should only be run as an export hook."
     (while (and (not exit) (if limit (< (point) limit) t))
       (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
       (save-match-data
-        (setq element-context (org-element-context (org-element-at-point)))
+        (setq element-context (org-element-context))
         (when (and (memq 'link (org-element-restriction element-context))
                    (not (org-glossary--within-definition-p element-context)))
           ;; HACK For some strange reason, if I don't move point forwards
