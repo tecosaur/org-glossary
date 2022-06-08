@@ -602,23 +602,71 @@ types will be used."
 
 ;;; Pluralisation
 
+(defcustom org-glossary-english-plural-exceptions nil
+  "An alist of (lowercase) words and their plural forms.
+For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/english-plurals-list/resources/noun.exc."
+  :type '(alist :key-type (string :tag "singular")
+                :value-type (string :tag "plural")))
+
 (defun org-glossary-english-plural (word)
   "Generate the plural form of WORD."
-  (let (case-fold-search)
-    (cond
-     ((string-match-p "[^aeiou]o$" word)
-      (concat word "es"))
-     ((string-match-p "\\(?:is\\|ss\\|sh\\|ch\\|x\\|z\\)$" word)
-      (concat word "es"))
-     ((string-match-p "us$" word)
-      (concat (substring word 0 -2) "i"))
-     ((string-match-p "on$" word)
-      (concat (substring word 0 -2) "a"))
-     ((string-match-p "^[a-z].*[^aeiou]y$" word)
-      (concat (substring word 0 -1) "ies"))
-     ((string-match-p "^[a-z].*[aeiou]y$" word)
-      (concat word "s"))
-     (t (concat word "s")))))
+  (or (let ((plural (alist-get (downcase word)
+                               org-glossary-english-plural-exceptions
+                               nil nil #'string=))
+            case-fold-search)
+        (when plural
+          (cond
+           ((string-match-p "^[[:lower:]]+$" word) plural)
+           ((string-match-p "^[[:upper:]][[:lower:]]+$" word)
+            (capitalize plural))
+           ((string-match-p "^[[:upper:]]+$" word) (upcase plural)))))
+      (cond ; Source: https://github.com/plurals/pluralize/blob/master/pluralize.js#L334
+       ((string-match "m[ae]n$" word)
+        (replace-match "men" nil t word))
+       ((string-match-p "eaux$" word) word)
+       ((string-match "\\(child\\)\\(?:ren\\)?$" word)
+        (replace-match "\\1ren" nil nil word))
+       ((string-match "pe\\(?:rson\\|ople\\)$" word)
+        (replace-match "people" nil t word))
+       ((string-match "\\b\\(\\(?:tit\\)?m\\|l\\)\\(?:ice\\|ouse\\)$" word)
+        (replace-match "\\1ice" nil nil word))
+       ((string-match "\\(matr\\|cod\\|mur\\|sil\\|vert\\|ind\\|append\\)\\(?:ix\\|ex\\)$" word)
+        (replace-match "\\1ices" nil nil word))
+       ((string-match "\\(x\\|ch\\|ss\\|sh\\|zz\\)$" word)
+        (replace-match "\\1es" nil nil word))
+       ((string-match "\\([^ch][ieo][ln]\\)ey$" word)
+        (replace-match "\\1es" nil nil word))
+       ((string-match "\\([^aeiou]\\|qu\\)y$" word)
+        (replace-match "\\1ies" nil nil word))
+       ((string-match "\\(?:\\(kni\\|wi\\|li\\)fe\\|\\(ar\\|l\\|ea\\|eo\\|oa\\|hoo\\)f\\)$" word)
+        (replace-match "\\1\\2ves" nil nil word))
+       ((string-match "sis$" word)
+        (replace-match "ses" nil nil word))
+       ((string-match "\\(apheli\\|hyperbat\\|periheli\\|asyndet\\|noumen\\|phenomen\\|criteri\\|organ\\|prolegomen\\|hedr\\|automat\\)\\(?:a\\|on\\)$" word)
+        (replace-match "\\1a" nil nil word))
+       ((string-match "\\(agend\\|addend\\|millenni\\|dat\\|extrem\\|bacteri\\|desiderat\\|strat\\|candelabr\\|errat\\|ov\\|symposi\\|curricul\\|automat\\|quor\\)\\(?:a\\|um\\)$" word)
+        (replace-match "\\1a" nil nil word))
+       ((string-match "\\(her\\|at\\|gr\\)o$" word)
+        (replace-match "\\1oes" nil nil word))
+       ((string-match "\\(seraph\\|cherub\\)\\(?:im\\)$" word)
+        (replace-match "\\1im" nil nil word))
+       ((string-match "\\(alumn\\|alg\\|vertebr\\)\\(?:a\\|ae\\)$" word)
+        (replace-match "\\1ae" nil nil word))
+       ((string-match "\\(alumn\\|syllab\\|vir\\|radi\\|nucle\\|fung\\|cact\\|stimul\\|termin\\|bacill\\|foc\\|uter\\|loc\\|strat\\)\\(?:us\\|i\\)$" word)
+        (replace-match "\\1i" nil nil word))
+       ((string-match-p "\\([^l]ias\\|[aeiou]las\\|[ejzr]as\\|[iu]am\\)$" word) word)
+       ((string-match "\\(e[mn]u\\)s?$" word)
+        (replace-match "\\1s" nil nil word))
+       ((string-match "\\(i\\|l\\)um$" word) ; added
+        (replace-match "\\1a" nil nil word))
+       ((string-match "\\(alias\\|[^aou]us\\|t[lm]as\\|gas\\|ris\\)$" word)
+        (replace-match "\1es" nil nil word))
+       ((string-match "\\(ax\\|test\\)is$" word)
+        (replace-match "\\1es" nil nil word))
+       ((string-match "enon$" word)
+        (replace-match "ena" nil nil word))
+       ((string-match-p "\\([^aeiou]ese\\)$" word) word)
+       (t (concat word "s")))))
 
 ;;; Export
 
