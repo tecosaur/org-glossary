@@ -557,11 +557,15 @@ types will be used."
         (if (and (eq 'acronym (plist-get term-entry :type))
                  (eq 1 index))
             (format "%s (%s)"
-                    (concat
-                     (string-trim
-                      (org-export-data (plist-get term-entry :value) info))
-                     (when plural-p
-                       org-glossary-acronym-plural-suffix))
+                    (let* ((components (split-string
+                                        (org-export-data
+                                         (plist-get term-entry :value)
+                                         info))))
+                      (when plural-p
+                        (setf (car (last components))
+                              (funcall org-glossary-plural-function
+                                       (car (last components)))))
+                      (mapconcat #'identity components " "))
                     value)
           value))
     (funcall (if capitalized-p #'capitalize #'identity)
