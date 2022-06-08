@@ -49,6 +49,9 @@
 ;; in the file, like org-toc.?
 ;; This is complicated by the way we treat * Glossary sections etc.
 ;;
+;; TODO check for glossary updates with an idle timer, if performance
+;; characteristics allow (maybe with a heuristic for file size/complexity).
+;;
 ;; (long term)
 ;;
 ;; TODO abstract the short<->long/expansion part of this package into
