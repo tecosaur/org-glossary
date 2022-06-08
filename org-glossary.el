@@ -258,7 +258,7 @@ TERMS but the buffer content left unmodified."
              (org-glossary--definition-heading-p datum))
         t
       (org-glossary--within-definition-p
-       (org-element-lineage datum '(headline))))))
+       (save-match-data (org-element-lineage datum '(headline)))))))
 
 (defun org-glossary--definition-heading-p (heading)
   "Whether HEADING is recognised as a definition heading."
