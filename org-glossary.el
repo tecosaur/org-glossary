@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: abbrev docs tools
 ;; Homepage: https://github.com/tecosaur/org-glossary
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "27.1") (org "9.6"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -31,7 +31,7 @@
 ;;
 ;; TODO make the export formatting/style customisable
 ;;
-;; TODO load terms from #+include'd files
+;; DONE load terms from #+include'd files
 ;;
 ;; DONE fontification of terms
 ;;
@@ -115,32 +115,156 @@ During export, all subtrees starting with this heading will be removed."
 (defvar-local org-glossary--terms nil
   "The currently known terms.")
 
+;;; Obtaining term definitions
+
+(defun org-glossary--get-terms (&optional path-spec)
+  (let ((term-source (org-glossary--get-terms-oneshot path-spec)))
+    (apply #'append
+           (plist-get term-source :terms)
+           (mapcar #'org-glossary--get-terms
+                   (plist-get term-source :included)))))
+
+(defun org-glossary--get-terms-oneshot (&optional path-spec)
+  "Optain all terms defined in PATH-SPEC."
+  (let* ((path-spec (or path-spec
+                        (org-glossary--parse-include-value
+                         (buffer-file-name))
+                        (current-buffer)))
+         (path-buffer
+          (cond
+           ((bufferp path-spec) path-spec)
+           ((equal (plist-get path-spec :file)
+                   (buffer-file-name))
+            (current-buffer))))
+         (parse-tree
+          (if path-buffer
+              (with-current-buffer path-buffer
+                (org-element-parse-buffer))
+            (with-temp-buffer
+              (setq buffer-file-name (plist-get path-spec :file))
+              (org-glossary--include-once path-spec)
+              (set-buffer-modified-p nil)
+              (org-element-parse-buffer)))))
+    (list :path path-spec
+          :scan-time (current-time)
+          :terms (org-glossary--extract-terms parse-tree)
+          :included
+          (mapcar
+           #'org-glossary--parse-include-value
+           (org-element-map parse-tree 'keyword
+             (lambda (kwd)
+               (when (string= "INCLUDE" (org-element-property :key kwd))
+                 (org-element-property :value kwd))))))))
+
+(defun org-glossary--include-once (parameters)
+  "Include content based on PARAMETERS."
+  (unless (eq (plist-get parameters :env) 'literal)
+    (let ((lines (plist-get parameters :lines))
+          (file (plist-get parameters :file))
+          (location (plist-get parameters :location))
+          (org-inhibit-startup t))
+      (org-mode)
+      (insert
+       (org-export--prepare-file-contents
+        file
+        (if location
+            (org-export--inclusion-absolute-lines
+             file location
+             (plist-get parameters :only-contents)
+             lines)
+          lines)
+        0
+        (plist-get parameters :minlevel)
+        nil nil
+        (buffer-file-name))))))
+
+(defun org-glossary--parse-include-value (value &optional dir)
+  "Extract the useful parameters from #+include: VALUE.
+The file name is resolved against DIR."
+  (when value
+    (let* (location
+           (file
+            (and (string-match "^\\(\".+?\"\\|\\S-+\\)\\(?:\\s-+\\|$\\)" value)
+                 (prog1
+                     (save-match-data
+                       (let ((matched (match-string 1 value))
+                             stripped)
+                         (when (string-match "\\(::\\(.*?\\)\\)\"?\\'"
+                                             matched)
+                           (setq location (match-string 2 matched))
+                           (setq matched
+                                 (replace-match "" nil nil matched 1)))
+                         (setq stripped (org-strip-quotes matched))
+                         (if (org-url-p stripped)
+                             stripped
+                           (expand-file-name stripped dir))))
+                   (setq value (replace-match "" nil nil value)))))
+           (only-contents
+            (and (string-match ":only-contents *\\([^: \r\t\n]\\S-*\\)?"
+                               value)
+                 (prog1 (org-not-nil (match-string 1 value))
+                   (setq value (replace-match "" nil nil value)))))
+           (lines
+            (and (string-match
+                  ":lines +\"\\([0-9]*-[0-9]*\\)\""
+                  value)
+                 (prog1 (match-string 1 value)
+                   (setq value (replace-match "" nil nil value)))))
+           (env (cond
+                 ((string-match "\\<example\\>" value) 'literal)
+                 ((string-match "\\<export\\(?: +\\(.*\\)\\)?" value)
+                  'literal)
+                 ((string-match "\\<src\\(?: +\\(.*\\)\\)?" value)
+                  'literal)))
+           ;; Minimal level of included file defaults to the
+           ;; child level of the current headline, if any, or
+           ;; one.  It only applies is the file is meant to be
+           ;; included as an Org one.
+           (minlevel
+            (and (not env)
+                 (if (string-match ":minlevel +\\([0-9]+\\)" value)
+                     (prog1 (string-to-number (match-string 1 value))
+                       (setq value (replace-match "" nil nil value)))
+                   (get-text-property (point)
+                                      :org-include-induced-level)))))
+      (list :file (if (org-url-p file) file
+                      (expand-file-name file dir))
+            :location location
+            :only-contents only-contents
+            :line lines
+            :env env
+            :minlevel minlevel))))
+
+;;; Term identification
+
 (defun org-glossary--extract-terms (&optional parse-tree)
   "Find all terms defined in the current buffer.
 Note that this removes definition values from PARSE-TREE by
 side-effect when it is provided."
-  (apply #'nconc
-         (org-element-map
-             (or parse-tree (org-element-parse-buffer))
-             'headline
-           (lambda (heading)
-             (and (member (org-element-property :raw-value heading)
-                          (list org-glossary-section
-                                org-glossary-acronym-section
-                                org-glossary-index-section
-                                org-glossary-substitution-section))
-                  (apply #'nconc
-                         (org-element-map
-                             (org-element-contents heading)
-                             'plain-list
-                           (lambda (lst)
+  (let* ((parse-tree (or parse-tree (org-element-parse-buffer)))
+         (buffer-file-name (org-element-property :path parse-tree)))
+    (apply #'nconc
+           (org-element-map
+               parse-tree
+               'headline
+               (lambda (heading)
+                 (and (member (org-element-property :raw-value heading)
+                              (list org-glossary-section
+                                    org-glossary-acronym-section
+                                    org-glossary-index-section
+                                    org-glossary-substitution-section))
+                      (apply #'nconc
                              (org-element-map
-                                 (org-element-contents lst)
-                                 'item
-                               #'org-glossary--entry-from-item
-                               nil nil 'item))))))
-           nil nil
-           (and org-glossary-toplevel-only 'headline))))
+                                 (org-element-contents heading)
+                                 'plain-list
+                               (lambda (lst)
+                                 (org-element-map
+                                     (org-element-contents lst)
+                                     'item
+                                   #'org-glossary--entry-from-item
+                                   nil nil 'item))))))
+             nil nil
+             (and org-glossary-toplevel-only 'headline)))))
 
 (defun org-glossary--entry-from-item (item)
   "Destructively build a glossary entry from a ITEM."
@@ -194,30 +318,7 @@ side-effect when it is provided."
                       'substitution))))
         (org-glossary--entry-type (org-element-lineage datum '(headline))))))
 
-(defun org-glossary--construct-regexp (terms)
-  "Create a regexp to find all occurances of TERMS.
-The first match group is the non-plural form of the term,
-the second match group indicates plurality, as specified with
-`org-glossary-acronym-plural-suffix'."
-  (let ((terms-collect
-         (lambda (terms key)
-           (apply #'nconc
-                  (mapcar
-                   (lambda (trm)
-                     (if (eq 'acronym (plist-get trm :type))
-                         (list (plist-get trm key))
-                       (let* ((term-str (plist-get trm key))
-                              (term-letter1 (aref term-str 0)))
-                         (if (eq term-letter1 (upcase term-letter1))
-                             (list term-str)
-                           (list term-str (concat (string (upcase term-letter1))
-                                                  (substring term-str 1)))))))
-                   terms)))))
-    (concat "\\<"
-            (regexp-opt (funcall terms-collect terms :key-plural) t)
-            "\\|"
-            (regexp-opt (funcall terms-collect terms :key) t)
-            "\\>")))
+;;; Term usage
 
 (defun org-glossary-apply-terms (terms &optional no-modify no-number)
   "Replace occurances of the TERMS with links.
@@ -254,6 +355,31 @@ TERMS but the buffer content left unmodified."
              (when (member (plist-get trm :key) terms-used)
                trm))
            terms))))
+
+(defun org-glossary--construct-regexp (terms)
+  "Create a regexp to find all occurances of TERMS.
+The first match group is the non-plural form of the term,
+the second match group indicates plurality, as specified with
+`org-glossary-acronym-plural-suffix'."
+  (let ((terms-collect
+         (lambda (terms key)
+           (apply #'nconc
+                  (mapcar
+                   (lambda (trm)
+                     (if (eq 'acronym (plist-get trm :type))
+                         (list (plist-get trm key))
+                       (let* ((term-str (plist-get trm key))
+                              (term-letter1 (aref term-str 0)))
+                         (if (eq term-letter1 (upcase term-letter1))
+                             (list term-str)
+                           (list term-str (concat (string (upcase term-letter1))
+                                                  (substring term-str 1)))))))
+                   terms)))))
+    (concat "\\<"
+            (regexp-opt (funcall terms-collect terms :key-plural) t)
+            "\\|"
+            (regexp-opt (funcall terms-collect terms :key) t)
+            "\\>")))
 
 (defun org-glossary--within-definition-p (datum)
   "Whether DATUM exists within a term definition subtree."
@@ -381,6 +507,8 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
                (when plural-p org-glossary-acronym-plural-suffix))))
     (_ (match-string 0))))
 
+;;; Export used term definitions (as an AST)
+
 (defun org-glossary--print-terms (terms &optional types level)
   "Produce an org-mode AST defining TERMS.
 Do this for each of TYPES (by default: glossary, acronym, and index),
@@ -477,7 +605,6 @@ types will be used."
                        type-terms))))))
    (or types (cl-delete-duplicates
               (mapcar (lambda (trm) (plist-get trm :type)) terms)))))
-
 
 (defun org-glossary--strip-headings (&optional data _backend info remove-from-buffer)
   "Remove glossary headlines."
@@ -678,7 +805,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 (defun org-glossary--prepare-buffer (&optional _backend)
   "Modify the buffer to resolve all defined terms, prepearing it for export.
 This should only be run as an export hook."
-  (setq org-glossary--terms (org-glossary--extract-terms))
+  (setq org-glossary--terms (org-glossary--get-terms))
   (org-glossary--strip-headings nil nil nil t)
   (let* ((used-terms (org-glossary-apply-terms org-glossary--terms))
          (glossary-section (org-glossary--print-terms used-terms)))
@@ -761,7 +888,7 @@ This should only be run as an export hook."
 (defun org-glossary-update-terms ()
   "Update the currently known terms."
   (interactive)
-  (setq org-glossary--terms (org-glossary--extract-terms)
+  (setq org-glossary--terms (org-glossary--get-terms)
         org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms)
         org-glossary--quicklookup-cache (make-hash-table :test #'equal))
   (when org-glossary-mode
