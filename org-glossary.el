@@ -235,6 +235,58 @@ The file name is resolved against DIR."
             :env env
             :minlevel minlevel))))
 
+;;; Term cache
+
+(defvar org-glossary--terms-cache nil
+  "Cached definition sources.
+An alist with entries of the form:
+  (PATH-SPEC . TERM-CACHE-PLIST)
+
+where PATH-SPEC is an absolute #+include path, and TERM-CACHE-PLIST
+a plist of the form:
+  (:path FILE-PATH-OR-URL
+   :scan-time TIME-LIST
+   :terms TERM-LIST
+   :included LIST-OF-PATH-SPECS)")
+
+(defun org-glossary--get-terms-cached (&optional path-spec)
+  "Obtain all known terms in the current buffer."
+  (let* ((path-spec (or path-spec
+                        (org-glossary--parse-include-value (buffer-file-name))
+                        (current-buffer)))
+         (term-source-cached (assoc path-spec org-glossary--terms-cache))
+         (cached-path (plist-get (cdr term-source-cached) :path))
+         (cached-file (plist-get cached-path :file))
+         (cache-valid
+          (and term-source-cached
+               (not (bufferp cached-path))
+               (or (org-url-p cached-file)
+                   (and (file-exists-p cached-file)
+                        (if (equal cached-file (buffer-file-name))
+                            (not (buffer-modified-p)) t)
+                        (time-less-p (plist-get (cdr term-source-cached) :scan-time)
+                                     (file-attribute-modification-time
+                                      (file-attributes cached-file)))))))
+         (term-source
+          (or (and term-source-cached
+                   (if cache-valid t
+                     (delq term-source-cached org-glossary--terms-cache)
+                     nil)
+                   (cdr term-source-cached))
+              (cdar (push
+                     (cons path-spec
+                           (org-glossary--get-terms-oneshot path-spec))
+                     org-glossary--terms-cache)))))
+    (apply #'append
+           (plist-get term-source :terms)
+           (mapcar #'org-glossary--get-terms-cached
+                   (plist-get term-source :included)))))
+
+(defun org-glossary-clear-cache ()
+  "Clear the global term cache."
+  (interactive)
+  (setq org-glossary--terms-cache nil))
+
 ;;; Term identification
 
 (defun org-glossary--extract-terms (&optional parse-tree)
@@ -805,7 +857,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 (defun org-glossary--prepare-buffer (&optional _backend)
   "Modify the buffer to resolve all defined terms, prepearing it for export.
 This should only be run as an export hook."
-  (setq org-glossary--terms (org-glossary--get-terms))
+  (setq org-glossary--terms (org-glossary--get-terms-cached))
   (org-glossary--strip-headings nil nil nil t)
   (let* ((used-terms (org-glossary-apply-terms org-glossary--terms))
          (glossary-section (org-glossary--print-terms used-terms)))
@@ -888,7 +940,7 @@ This should only be run as an export hook."
 (defun org-glossary-update-terms ()
   "Update the currently known terms."
   (interactive)
-  (setq org-glossary--terms (org-glossary--get-terms)
+  (setq org-glossary--terms (org-glossary--get-terms-cached)
         org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms)
         org-glossary--quicklookup-cache (make-hash-table :test #'equal))
   (when org-glossary-mode
