@@ -175,6 +175,7 @@ side-effect when it is provided."
           :term-plural plural
           :type type
           :value value
+          :definition-file (or (buffer-file-name) (current-buffer))
           :definition-pos (+ (org-element-property :begin item) 2)
           :uses nil)))
 
@@ -802,6 +803,10 @@ If TERM-REF is not given, the current point will be used."
                      (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
                     (next-single-property-change
                      (or (and (numberp term-ref) term-ref) (point)) 'face))))))
+    (let ((def-file (plist-get term-entry :definition-file)))
+      (if (bufferp def-file)
+          (switch-to-buffer def-file))
+      (find-file def-file))
     (goto-char (plist-get term-entry :definition-pos))))
 
 (provide 'org-glossary)
