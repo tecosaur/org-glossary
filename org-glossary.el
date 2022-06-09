@@ -961,6 +961,8 @@ This should only be run as an export hook."
 (defun org-glossary-update-terms ()
   "Update the currently known terms."
   (interactive)
+  (unless (eq major-mode 'org-mode)
+    (user-error "You need to be in `org-mode' to use org-glossary."))
   (setq org-glossary--terms (org-glossary--get-terms-cached)
         org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms)
         org-glossary--quicklookup-cache (make-hash-table :test #'equal))
