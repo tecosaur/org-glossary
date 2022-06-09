@@ -45,6 +45,8 @@
 ;; TODO M-x org-glossary-find-expanded-terms
 ;; this would be primaraly useful for acronyms.
 ;;
+;; TODO org-glossary-global-definitions
+;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
 ;; in the file, like org-toc.?
 ;; This is complicated by the way we treat * Glossary sections etc.
