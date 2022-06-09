@@ -1034,14 +1034,15 @@ TERM-REF may be a string or position in the buffer to look for a term.
 If TERM-REF is not given, the current point will be used."
   (interactive)
   (org-glossary-update-terms)
-  (when-let ((term-entry
-              (org-glossary--quicklookup
-               (or (and (stringp term-ref) term-ref)
-                   (buffer-substring-no-properties
-                    (previous-single-property-change
-                     (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
-                    (next-single-property-change
-                     (or (and (numberp term-ref) term-ref) (point)) 'face))))))
+  (let ((term-entry
+         (or (org-glossary--quicklookup
+              (or (and (stringp term-ref) term-ref)
+                  (buffer-substring-no-properties
+                   (previous-single-property-change
+                    (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
+                   (next-single-property-change
+                    (or (and (numberp term-ref) term-ref) (point)) 'face))))
+             (org-glossary--select-term org-glossary--terms))))
     (let ((def-file (plist-get term-entry :definition-file)))
       (if (bufferp def-file)
           (switch-to-buffer def-file))
