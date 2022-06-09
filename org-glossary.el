@@ -47,6 +47,8 @@
 ;;
 ;; TODO org-glossary-global-definitions
 ;;
+;; TODO support #+print_glossary: :level N
+;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
 ;; in the file, like org-toc.?
 ;; This is complicated by the way we treat * Glossary sections etc.
