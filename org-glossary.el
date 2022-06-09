@@ -912,6 +912,25 @@ This should only be run as an export hook."
           (setq exit t match-p t))))
     match-p))
 
+(defun org-glossary--term-help-echo (_window object pos)
+  "Find the term reference at POS in OBJECT, and get the definition."
+  (when-let ((term-entry
+              (org-glossary--quicklookup
+               (with-current-buffer object
+                 (buffer-substring-no-properties
+                  (previous-single-property-change (1+ pos) 'face)
+                  (next-single-property-change pos 'face))))))
+    (format "(%s) %s %s"
+            (propertize
+             (symbol-name (plist-get term-entry :type))
+             'face 'org-table)
+            (propertize
+             (plist-get term-entry :term)
+             'face 'org-list-dt)
+            (string-trim
+             (org-element-interpret-data
+              (plist-get term-entry :value))))))
+
 ;;; Interaction
 
 (defvar-local org-glossary--quicklookup-cache (make-hash-table :test #'equal)
@@ -948,25 +967,6 @@ This should only be run as an export hook."
       (widen)
       (font-lock-flush)))
   (org-glossary-apply-terms org-glossary--terms t))
-
-(defun org-glossary--term-help-echo (_window object pos)
-  "Find the term reference at POS in OBJECT, and get the definition."
-  (when-let ((term-entry
-              (org-glossary--quicklookup
-               (with-current-buffer object
-                 (buffer-substring-no-properties
-                  (previous-single-property-change (1+ pos) 'face)
-                  (next-single-property-change pos 'face))))))
-    (format "(%s) %s %s"
-            (propertize
-             (symbol-name (plist-get term-entry :type))
-             'face 'org-table)
-            (propertize
-             (plist-get term-entry :term)
-             'face 'org-list-dt)
-            (string-trim
-             (org-element-interpret-data
-              (plist-get term-entry :value))))))
 
 (defun org-glossary-term-definition (&optional term-ref)
   "Go to the definition of TERM-REF.
