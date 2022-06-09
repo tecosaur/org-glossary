@@ -110,6 +110,13 @@ During export, all subtrees starting with this heading will be removed."
   "A function which generates the plural form of a word."
   :type 'function)
 
+(defcustom org-glossary-group-ui t
+  "Group term definitions by type.
+
+In practice, if using Emacs 28, this allows you to turn off
+grouping, and add the target type to the annotation instead."
+  :type 'boolean)
+
 (defface org-glossary-term
   '((t :inherit (org-agenda-date-today org-link) :weight normal))
   "Face used for term references.")
@@ -971,6 +978,55 @@ This should only be run as an export hook."
       (widen)
       (font-lock-flush)))
   (org-glossary-apply-terms org-glossary--terms t))
+
+(defun org-glossary--select-term (terms)
+  "Select a term entry from TERMS."
+  (let* ((term-text (mapcar #'org-glossary--select-term-candidatify terms))
+         (choice
+          (completing-read
+           "Term: "
+           (lambda (string predicate action)
+             (if (eq action 'metadata)
+                 '(metadata
+                   (annotation-function . org-glossary--select-term-annotation)
+                   (group-function . org-glossary--select-term-group)
+                   (category . glossary-entry))
+               (complete-with-action action term-text string predicate))))))
+    (org-glossary--find-term-entry
+     terms (car (split-string choice "\u200b")) :term)))
+
+(defun org-glossary--select-term-candidatify (term-entry)
+  "Create a term string from TERM-ENTRY with itself attached as a text property."
+  (propertize
+   (truncate-string-to-width
+    (concat (plist-get term-entry :term) "\u200b")
+    18 0 ?\s)
+   'face 'font-lock-keyword-face
+   'org-glossary--term term-entry))
+
+(defun org-glossary--select-term-annotation (term-text)
+  "Construct the annotation for TERM-TEXT.
+Where TERM-TEXT is constructed by `org-glossary--select-term-candidatify'."
+  (concat " "
+          (unless org-glossary-group-ui
+            (truncate-string-to-width
+             (org-glossary--select-term-group term-text nil)
+             9 0 ?\s))
+          (string-trim
+           (substring-no-properties
+            (org-element-interpret-data
+             (plist-get
+              (get-text-property 0 'org-glossary--term term-text)
+              :value))))))
+
+(defun org-glossary--select-term-group (term-text transform)
+  "Construct the group of TERM-TEXT.
+Where TERM-TEXT is constructed by `org-glossary--select-term-candidatify'."
+  (if transform term-text
+    (symbol-name
+     (plist-get
+      (get-text-property 0 'org-glossary--term term-text)
+      :type))))
 
 (defun org-glossary-term-definition (&optional term-ref)
   "Go to the definition of TERM-REF.
