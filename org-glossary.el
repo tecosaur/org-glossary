@@ -897,7 +897,7 @@ This should only be run as an export hook."
   :global nil
   :group 'org-glossary
   (cond
-   (org-glossary-mode
+   ((and org-glossary-mode org-glossary-automatic)
     (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append)
     (org-glossary-update-terms))
    (t (font-lock-remove-keywords nil org-glossary--font-lock-keywords)
