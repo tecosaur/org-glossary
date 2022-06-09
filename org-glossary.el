@@ -521,7 +521,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
 (defun org-glossary--find-term-entry (terms term-key key)
   "Find any term in TERMS where KEY is TERM-KEY."
   (cl-some (lambda (trm)
-             (when (string= term-key (plist-get trm key))
+             (when (equal term-key (plist-get trm key))
                trm))
            terms))
 
