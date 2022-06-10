@@ -684,8 +684,8 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
             (let ((template
                    (org-combine-plists
                     default-template
-                    (or (alist-get type current-spec)
-                        (alist-get type default-spec)))))
+                    (alist-get type default-spec)
+                    (alist-get type current-spec))))
               (cons type template)))))
     (cons (cons t default-template)
           (mapcar complete-template
