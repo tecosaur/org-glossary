@@ -59,6 +59,9 @@
 ;; TODO check for glossary updates with an idle timer, if performance
 ;; characteristics allow (maybe with a heuristic for file size/complexity).
 ;;
+;; TODO support references inside glossary definitions, being careful
+;; to avoid circular references.
+;;
 ;; (long term)
 ;;
 ;; TODO abstract the short<->long/expansion part of this package into
