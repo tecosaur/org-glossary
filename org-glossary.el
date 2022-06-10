@@ -87,7 +87,7 @@ During export, all subtrees starting with this heading will be removed."
 During export, all subtrees starting with this heading will be removed."
   :type 'string)
 
-(defcustom org-glossary-index-section "Index Terms"
+(defcustom org-glossary-index-section "Index"
   "Outline heading containing a list of terms to be indexed.
 
 During export, all subtrees starting with this heading will be removed."
