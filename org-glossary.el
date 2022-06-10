@@ -35,7 +35,8 @@
 ;;
 ;; DONE fontification of terms
 ;;
-;; TODO jump to definition/usages
+;; DONE jump to definition, and
+;; TODO jump to usages
 ;;
 ;; TODO support term-links with multiple targets
 ;;
