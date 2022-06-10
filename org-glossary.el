@@ -129,6 +129,7 @@ grouping, and add the target type to the annotation instead."
   '((t (t :use "%t"
           :first-use "%u"
           :definition "%t"
+          :definition-structure-preamble ""
           :definition-structure "*%d*\\emsp{}%v %b\n"
           :letter-separator "*%L*\n")
        (glossary :heading "* Glossary")
@@ -179,6 +180,10 @@ start of the export process.
 - The :letter-separator form is inserted before a block of terms
   starting with the letter, given by the format spec %l and %L in
   lower and upper case respectively.
+
+The literal content of :definition-structure-preamble is inserted
+before the first :definition-structure in each block of
+definitions.
 
 TODO rewrite for clarity."
   :type '(alist :key-type (symbol :tag "Backend")
@@ -762,6 +767,8 @@ producing a headline of level LEVEL (by default: 1)."
              (plist-get export-spec :letter-separator)
              `((?l . (string letter))
                (?L . (string (upcase letter))))))
+          (unless (string= "" (plist-get export-spec :definition-structure-preamble))
+            (concat (plist-get export-spec :definition-structure-preamble) "\n"))
           (mapconcat
            (lambda (trm)
              (org-glossary--print-terms-singular export-spec trm))
