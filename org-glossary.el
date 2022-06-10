@@ -129,6 +129,7 @@ grouping, and add the target type to the annotation instead."
   '((t (t :use "%t"
           :first-use "%u"
           :definition "%t"
+          :backref "%r"
           :definition-structure-preamble ""
           :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
           :letter-separator "*%L*\n")
