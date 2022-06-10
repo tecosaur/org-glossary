@@ -126,7 +126,7 @@ grouping, and add the target type to the annotation instead."
   '((t (t :use "%t"
           :first-use "%u"
           :definition "%t"
-          :definition-structure "*%d*\\emsp{}%v %b"
+          :definition-structure "*%d*\\emsp{}%v %b\n"
           :letter-seperator "*%L*\n")
        (glossary :heading "* Glossary")
        (acronym :heading "* Acronyms"
@@ -753,35 +753,31 @@ producing a headline of level LEVEL (by default: 1)."
      (lambda (letter-terms)
        (let ((letter (car letter-terms))
              (terms (cdr letter-terms)))
-         (concat
-          "\n"
-          (when use-letters-p
-            (concat (format-spec
-                     (plist-get export-spec :letter-seperator)
-                     `((?l . (string letter))
-                       (?L . (string (upcase letter)))))
-                    "\n"))
-          (mapconcat
-           (lambda (trm)
-             (org-glossary--print-terms-singular export-spec trm))
-           terms
-           "\n"))))
+         (when use-letters-p
+           (format-spec
+            (plist-get export-spec :letter-seperator)
+            `((?l . (string letter))
+              (?L . (string (upcase letter))))))
+         (mapconcat
+          (lambda (trm)
+            (org-glossary--print-terms-singular export-spec trm))
+          terms
+          "\n")))
      assembled-terms
      "\n")))
 
 (defun org-glossary--print-terms-singular (export-spec term)
-  (concat (format-spec
-           (plist-get export-spec :definition-structure)
-           `((?d . ,(format "[[glsdef:%s]]" (plist-get term :key)))
-             (?v . ,(string-trim (org-element-interpret-data
-                                  (plist-get term :value))))
-             (?b . ,(mapconcat
-                     (lambda (use)
-                       (format "[[glsuse:%d:%s]]"
-                               (car use) (plist-get term :key)))
-                     (plist-get term :uses)
-                     ", "))))
-          "\n"))
+  (format-spec
+   (plist-get export-spec :definition-structure)
+   `((?d . ,(format "[[glsdef:%s]]" (plist-get term :key)))
+     (?v . ,(string-trim (org-element-interpret-data
+                          (plist-get term :value))))
+     (?b . ,(mapconcat
+             (lambda (use)
+               (format "[[glsuse:%d:%s]]"
+                       (car use) (plist-get term :key)))
+             (plist-get term :uses)
+             ", ")))))
 
 (defun org-glossary--assemble-terms (terms &optional types)
   "Collect TERMS into the form ((type . (first-char . sorted-terms)...)...).
