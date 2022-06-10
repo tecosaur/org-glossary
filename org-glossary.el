@@ -73,6 +73,10 @@
 
 (require 'org)
 
+(eval-when-compile
+  (require 'cl-lib)
+  (require 'subr-x))
+
 (defgroup org-glossary nil
   "Defined terms and abbreviations in Org."
   :group 'org
