@@ -1121,9 +1121,10 @@ This should only be run as an export hook."
 (defun org-glossary--select-term-candidatify (term-entry)
   "Create a term string from TERM-ENTRY with itself attached as a text property."
   (propertize
-   (truncate-string-to-width
-    (concat (plist-get term-entry :term) "\u200b")
-    18 0 ?\s)
+   (concat
+    (plist-get term-entry :term)
+    (make-string (max 0 (- 18 (length(plist-get term-entry :term) ))) ?\s)
+    "\u200b")
    'face 'font-lock-keyword-face
    'org-glossary--term term-entry))
 
