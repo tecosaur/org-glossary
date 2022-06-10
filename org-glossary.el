@@ -797,7 +797,7 @@ optional arguments:
   "Produce an org-mode AST defining TERMS for BACKEND.
 Do this for each of TYPES (by default: glossary, acronym, and index),
 producing a headline of level LEVEL (by default: 1)."
-  (let ((assembled-terms (org-glossary--assemble-terms terms types))
+  (let ((assembled-terms (org-glossary--assemble-terms terms types t t))
         export-spec content)
     (mapconcat
      (lambda (type)
@@ -863,39 +863,52 @@ producing a headline of level LEVEL (by default: 1)."
              (plist-get term-entry :uses)
              ", ")))))
 
-(defun org-glossary--assemble-terms (terms &optional types)
-  "Collect TERMS into the form ((type . (first-char . sorted-terms)...)...).
+(defun org-glossary--assemble-terms (terms &optional types sort-p split-letters)
+  "Collect TERMS into the form ((type . TERM-FORMS)...).
 When a list of TYPES is provided, only terms which are of one of the provided
-types will be used."
+types will be used.
+
+When SPLIT-LETTERS is non-nil TERM-FORMS will be of the form,
+  ((first-char . MAYBE-SORTED-TERMS)...)
+otherwise it will just be MAYBE-SORTED-TERMS.
+
+If SORT-P is non-nil, MAYBE-SORTED-TERMS will be sorted alphabetically."
   (mapcar
    (lambda (type)
      (cons type
            (let ((type-terms
-                  (sort
-                   (delq nil
-                         (mapcar
-                          (lambda (trm)
-                            (when (eq type (plist-get trm :type))
-                              trm))
-                          terms))
-                   (lambda (t1 t2)
-                     (string< (plist-get t1 :key)
-                              (plist-get t2 :key))))))
-             (mapcar
-              (lambda (first-char)
-                (cons first-char
-                      (delq nil
-                            (mapcar
-                             (lambda (trm)
-                               (when (eq first-char
-                                         (aref (plist-get trm :key) 0))
-                                 trm))
-                             type-terms))))
-              (cl-delete-duplicates
-               (mapcar (lambda (trm) (aref (plist-get trm :key) 0))
-                       type-terms))))))
+                  (cl-remove-if-not
+                   (lambda (trm) (eq type (plist-get trm :type)))
+                   terms)))
+             (when sort-p
+               (setq type-terms
+                     (org-glossary--sort-plist type-terms :key #'string<)))
+             (if split-letters
+                 (org-glossary--assemble-terms-by-char type-terms)
+               type-terms))))
    (or types (cl-delete-duplicates
               (mapcar (lambda (trm) (plist-get trm :type)) terms)))))
+
+(defun org-glossary--assemble-terms-by-char (terms)
+  "Collect TERMS into the form ((first-char . TERMS-LIST)...)."
+  (mapcar
+   (lambda (first-char)
+     (cons first-char
+           (cl-remove-if-not
+            (lambda (trm)
+              (eq first-char (aref (plist-get trm :key) 0)))
+            terms)))
+   (cl-delete-duplicates
+    (mapcar (lambda (trm) (aref (plist-get trm :key) 0))
+            terms))))
+
+(defun org-glossary--sort-plist (plist key predicate)
+  "Sort PLIST by KEY according to PREDICATE."
+  (sort plist
+        (lambda (a b)
+          (funcall predicate
+                   (plist-get a key)
+                   (plist-get b key)))))
 
 (defun org-glossary--strip-headings (&optional data _backend info remove-from-buffer)
   "Remove glossary headlines."
