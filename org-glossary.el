@@ -130,7 +130,7 @@ grouping, and add the target type to the annotation instead."
           :first-use "%u"
           :definition "%t"
           :definition-structure "*%d*\\emsp{}%v %b\n"
-          :letter-seperator "*%L*\n")
+          :letter-separator "*%L*\n")
        (glossary :heading "* Glossary")
        (acronym :heading "* Acronyms"
                 :first-use "%v (%u)")
@@ -159,7 +159,7 @@ The following term forms as recognised for all template specs:
   :definition
 There are also two special forms for the default template spec:
   :definition-structure
-  :letter-seperator
+  :letter-separator
 
 Within each template, the following format specs are applied:
   %t the term
@@ -176,7 +176,7 @@ start of the export process.
 - The :definition-structure form is used as the template for the
   whole definition entry, and uses the format specs %d, %v, %b
   for the definition term, value, and backreferences respectively.
-- The :letter-seperator form is inserted before a block of terms
+- The :letter-separator form is inserted before a block of terms
   starting with the letter, given by the format spec %l and %L in
   lower and upper case respectively.
 
@@ -751,7 +751,7 @@ producing a headline of level LEVEL (by default: 1)."
          (use-letters-p
           (and (> (apply #'+ terms-per-letter) 15)
                (> (apply #'max terms-per-letter) 3)
-               (not (string= "" (plist-get export-spec :letter-seperator))))))
+               (not (string= "" (plist-get export-spec :letter-separator))))))
     (mapconcat
      (lambda (letter-terms)
        (let ((letter (car letter-terms))
@@ -759,7 +759,7 @@ producing a headline of level LEVEL (by default: 1)."
          (concat
           (when use-letters-p
             (format-spec
-             (plist-get export-spec :letter-seperator)
+             (plist-get export-spec :letter-separator)
              `((?l . (string letter))
                (?L . (string (upcase letter))))))
           (mapconcat
