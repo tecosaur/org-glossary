@@ -752,8 +752,7 @@ producing a headline of level LEVEL (by default: 1)."
        (and (not (string-empty-p content))
             (concat
              (plist-get export-spec :heading)
-             (and (plist-get export-spec :heading)
-                  "\n\n")
+             (and (plist-get export-spec :heading) "\n")
              content)))
      (or types '(glossary acronym index))
      "\n")))
@@ -778,10 +777,12 @@ producing a headline of level LEVEL (by default: 1)."
           (concat
            (when use-letters-p
              (concat
+              "\n"
               (format-spec
                (plist-get export-spec :letter-separator)
                `((?l . ,(string letter))
                  (?L . ,(string (upcase letter)))))
+              "\n"
               (and (not (string= "" (plist-get export-spec :definition-structure-preamble)))
                    (concat (plist-get export-spec :definition-structure-preamble) "\n"))))
            (mapconcat
