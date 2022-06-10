@@ -339,9 +339,10 @@ a plist of the form:
                    (and (file-exists-p cached-file)
                         (if (equal cached-file (buffer-file-name))
                             (not (buffer-modified-p)) t)
-                        (time-less-p (plist-get (cdr term-source-cached) :scan-time)
-                                     (file-attribute-modification-time
-                                      (file-attributes cached-file)))))))
+                        (not ; scan time >= mtime (scan time !< mtime)
+                         (time-less-p (plist-get (cdr term-source-cached) :scan-time)
+                                      (file-attribute-modification-time
+                                       (file-attributes cached-file))))))))
          (term-source
           (or (and term-source-cached
                    (if cache-valid t
