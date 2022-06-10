@@ -143,7 +143,11 @@ grouping, and add the target type to the annotation instead."
               :backref "\\pageref{gls-%k-use-%r}"))
     (html (t :use "<a class=\"org-gls\" href=\"#gls.%k\" id=\"glsr.%k.%r\">%t</a>"
              :definition "<span class=\"org-glsdef\" id=\"gls.%k\">%t</span>"
-             :backref "<a class=\"org-glsdef\" href=\"#glsr.%k.%r\">%r</a>")))
+             :backref "<a class=\"org-glsdef\" href=\"#glsr.%k.%r\">%r</a>"))
+    (org (t :use "<<gr;%k;%r>>[[g;%k][%t]]"
+            :backref "[[gr;%k;%r][%r]]"
+            :definition-structure "- <<g;%k>>%t :: %v\\ensp{}%b")
+         (index :definition-structure "- <<g;%k>>%t\\ensp{}%b")))
   "Alist of export backends and template set alists.
 Each template set alist has the term type (e.g. acronym) as the
 car, and the templates set as the cdr.
