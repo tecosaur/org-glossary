@@ -130,12 +130,13 @@ grouping, and add the target type to the annotation instead."
           :first-use "%u"
           :definition "%t"
           :definition-structure-preamble ""
-          :definition-structure "*%d*\\emsp{}%v %b\n"
+          :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
           :letter-separator "*%L*\n")
        (glossary :heading "* Glossary")
        (acronym :heading "* Acronyms"
                 :first-use "%v (%u)")
-       (index :heading "* Index"))
+       (index :heading "* Index"
+              :definition-structure "%d\\ensp{}%b\n"))
     (latex (t :use "\\hyperlink{gls-%k}{\\label{gls-%k-use-%r}%t}"
               :definition "\\hypertarget{gls-%k}{%t}"
               :backref "\\pageref{gls-%k-use-%r}"))
