@@ -173,6 +173,7 @@ Within each template, the following format specs are applied:
   %v the term value
   %k the term key
   %r the term reference index (applicable to :use, :first-use, and :backref)
+  %n the number of term references (i.e. max %r)
 
 In :use and :first-use, %t/%v are pluralised and capitalised as
 appropriate. The :first-use template can also use %u to refer to
@@ -696,54 +697,73 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
           (mapcar complete-template
                   '(glossary acronym index substitutions)))))
 
-(defun org-glossary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p)
+(defun org-glossary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
   "Export the FORM of TERM-ENTRY according to `org-glossary--current-export-spec'.
-Auxillary information is encoded in,
-BACKEND, INFO, REF-INDEX, REF-INDEX, PLURAL-P, and CAPITALIZED-P."
-  (let ((template (plist-get (alist-get
-                              (plist-get term-entry :type)
-                              org-glossary--current-export-spec)
-                             form))
-        parameters)
+All other argments (BACKEND, INFO, FORM, REF-INDEX, PLURAL-P,
+CAPITALIZED-P, EXTRA-PARAMETERS) are simply passed onto the
+relevant template."
+  (let ((template
+         (plist-get (alist-get
+                     (plist-get term-entry :type)
+                     org-glossary--current-export-spec)
+                    form)))
     (cond
      ((stringp template)
-      (when (string-match-p "%k" template)
-        (push (cons ?k (plist-get term-entry :key)) parameters))
-      (when (string-match-p "%t" template)
-        (push (cons ?t (funcall (if capitalized-p #'capitalize #'identity)
-                                (plist-get term-entry
-                                           (if plural-p :term-plural :term))))
-              parameters))
-      (when (string-match-p "%v" template)
-        (push (cons ?v
-                    (let ((value-str
-                           (org-export-data (plist-get term-entry :value) info)))
-                      (funcall (if capitalized-p #'capitalize #'identity)
-                               (if plural-p
-                                   (let ((components (split-string value-str)))
-                                     (setf (car (last components))
-                                           (funcall org-glossary-plural-function
-                                                    (car (last components))))
-                                     (mapconcat #'identity components " "))
-                                 value-str))))
-              parameters))
-      (when (and ref-index (string-match-p "%r" template))
-        (push (cons ?r (number-to-string ref-index))
-              parameters))
-      (when (string-match-p "%u" template)
-        (push (cons ?u (org-glossary--export-instance
-                        backend info term-entry :use
-                        ref-index plural-p capitalized-p))
-              parameters))
-      (format-spec template parameters))
+      (org-glossary--export-template
+       template backend info term-entry
+       ref-index plural-p capitalized-p extra-parameters))
      ((functionp template)
-      (funcall template backend info term-entry form ref-index plural-p capitalized-p))
+      (funcall template backend info term-entry form
+               ref-index plural-p capitalized-p extra-parameters))
      (t "ORG-GLOSSARY-EXPORT-INVALID-SPEC"))))
+
+(defun org-glossary--export-template (template backend info term-entry &optional ref-index plural-p capitalized-p extra-parameters)
+  "Fill out TEMPLATE using BACKEND, INFO, and TERM-ENTRY.
+The fields availible to the template are further affected by the
+optional arguments:
+ - REF-INDEX provides %r
+ - PLURAL-P and CAPITALIZED-P affect %t and %v
+ - EXTRA-PARAMETERS defines additional fields"
+  (let ((parameters extra-parameters))
+    (when (string-match-p "%k" template)
+      (push (cons ?k (plist-get term-entry :key)) parameters))
+    (when (string-match-p "%t" template)
+      (push (cons ?t (funcall (if capitalized-p #'capitalize #'identity)
+                              (plist-get term-entry
+                                         (if plural-p :term-plural :term))))
+            parameters))
+    (when (and (not (memq ?v (mapcar #'car extra-parameters)))
+               (string-match-p "%v" template))
+      (push (cons ?v
+                  (let ((value-str
+                         (org-export-data (plist-get term-entry :value) info)))
+                    (funcall (if capitalized-p #'capitalize #'identity)
+                             (if plural-p
+                                 (let ((components (split-string value-str)))
+                                   (setf (car (last components))
+                                         (funcall org-glossary-plural-function
+                                                  (car (last components))))
+                                   (mapconcat #'identity components " "))
+                               value-str))))
+            parameters))
+    (when (and ref-index (string-match-p "%r" template))
+      (push (cons ?r (number-to-string ref-index))
+            parameters))
+    (when (string-match-p "%n" template)
+      (push (cons ?n (number-to-string
+                      (length (plist-get term-entry :uses))))
+            parameters))
+    (when (string-match-p "%u" template)
+      (push (cons ?u (org-glossary--export-instance
+                      backend info term-entry :use
+                      ref-index plural-p capitalized-p))
+            parameters))
+    (format-spec template (nreverse parameters))))
 
 ;;; Export used term definitions
 
-(defun org-glossary--print-terms (terms &optional types level)
-  "Produce an org-mode AST defining TERMS.
+(defun org-glossary--print-terms (backend terms &optional types level)
+  "Produce an org-mode AST defining TERMS for BACKEND.
 Do this for each of TYPES (by default: glossary, acronym, and index),
 producing a headline of level LEVEL (by default: 1)."
   (let ((assembled-terms (org-glossary--assemble-terms terms types))
@@ -752,7 +772,7 @@ producing a headline of level LEVEL (by default: 1)."
      (lambda (type)
        (setq export-spec (alist-get type org-glossary--current-export-spec)
              content (org-glossary--print-terms-by-letter
-                      export-spec (alist-get type assembled-terms)))
+                      backend type (alist-get type assembled-terms)))
        (and (not (string-empty-p content))
             (concat
              (plist-get export-spec :heading)
@@ -761,18 +781,19 @@ producing a headline of level LEVEL (by default: 1)."
      (or types '(glossary acronym index))
      "\n")))
 
-(defun org-glossary--print-terms-by-letter (export-spec assembled-terms)
-  "Produce an org-mode AST with definitions for ASSEMBLED-TERMS."
+(defun org-glossary--print-terms-by-letter (backend type assembled-terms)
+  "Produce an org-mode AST for TYPE in BACKEND defining ASSEMBLED-TERMS."
   (let* ((terms-per-letter
           (mapcar (lambda (tms) (length (cdr tms)))
                   assembled-terms))
+         (export-spec (alist-get type org-glossary--current-export-spec))
          (use-letters-p
           (and (> (apply #'+ terms-per-letter) 15)
                (> (apply #'max terms-per-letter) 3)
-               (not (string= "" (plist-get export-spec :letter-separator))))))
+               (not (string-empty-p (plist-get export-spec :letter-separator))))))
     (concat
      (and (not use-letters-p)
-          (not (string= "" (plist-get export-spec :definition-structure-preamble)))
+          (not (string-empty-p (plist-get export-spec :definition-structure-preamble)))
           (concat (plist-get export-spec :definition-structure-preamble) "\n"))
      (mapconcat
       (lambda (letter-terms)
@@ -790,26 +811,25 @@ producing a headline of level LEVEL (by default: 1)."
               (and (not (string= "" (plist-get export-spec :definition-structure-preamble)))
                    (concat (plist-get export-spec :definition-structure-preamble) "\n"))))
            (mapconcat
-            (lambda (trm)
-              (org-glossary--print-terms-singular export-spec trm))
+            (lambda (term-entry)
+              (org-glossary--print-terms-singular backend type term-entry))
             terms
             "\n"))))
       assembled-terms
       "\n"))))
 
-(defun org-glossary--print-terms-singular (export-spec term)
-  (format-spec
-   (plist-get export-spec :definition-structure)
-   `((?d . ,(format "[[glsdef:%s]]" (plist-get term :key)))
-     (?k . ,(plist-get term :key))
-     (?t . ,(plist-get term :term))
+(defun org-glossary--print-terms-singular (backend type term-entry)
+  (org-glossary--export-instance
+   backend nil term-entry :definition-structure
+   nil nil nil
+   `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
      (?v . ,(string-trim (org-element-interpret-data
-                          (plist-get term :value))))
+                          (plist-get term-entry :value))))
      (?b . ,(mapconcat
              (lambda (use)
                (format "[[glsuse:%d:%s]]"
-                       (car use) (plist-get term :key)))
-             (plist-get term :uses)
+                       (car use) (plist-get term-entry :key)))
+             (plist-get term-entry :uses)
              ", ")))))
 
 (defun org-glossary--assemble-terms (terms &optional types)
@@ -1013,7 +1033,7 @@ This should only be run as an export hook."
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
   (let* ((used-terms (org-glossary-apply-terms org-glossary--terms))
-         (glossary-section (org-glossary--print-terms used-terms)))
+         (glossary-section (org-glossary--print-terms backend used-terms)))
     (save-excursion
       (goto-char (point-max))
       (insert "\n" (org-element-interpret-data glossary-section)))))
