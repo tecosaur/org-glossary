@@ -756,16 +756,17 @@ producing a headline of level LEVEL (by default: 1)."
      (lambda (letter-terms)
        (let ((letter (car letter-terms))
              (terms (cdr letter-terms)))
-         (when use-letters-p
-           (format-spec
-            (plist-get export-spec :letter-seperator)
-            `((?l . (string letter))
-              (?L . (string (upcase letter))))))
-         (mapconcat
-          (lambda (trm)
-            (org-glossary--print-terms-singular export-spec trm))
-          terms
-          "\n")))
+         (concat
+          (when use-letters-p
+            (format-spec
+             (plist-get export-spec :letter-seperator)
+             `((?l . (string letter))
+               (?L . (string (upcase letter))))))
+          (mapconcat
+           (lambda (trm)
+             (org-glossary--print-terms-singular export-spec trm))
+           terms
+           "\n"))))
      assembled-terms
      "\n")))
 
