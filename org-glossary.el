@@ -1037,7 +1037,8 @@ This should only be run as an export hook."
       (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
       (save-match-data
         (setq element-context (org-element-context))
-        (when (and (memq 'link (org-element-restriction element-context))
+        (when (and (not exit)
+                   (memq 'link (org-element-restriction element-context))
                    (not (org-glossary--within-definition-p element-context)))
           ;; HACK For some strange reason, if I don't move point forwards
           ;; here, this function will end up being called again and again
