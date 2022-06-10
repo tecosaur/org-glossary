@@ -604,7 +604,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
   (let* ((uses (plist-get term-entry :uses))
          (index (1+ (length uses))))
     (plist-put term-entry :uses (nconc uses (list (cons index record))))
-    uses))
+    index))
 
 (defun org-glossary--clear-term-usage (term-entry)
   "Clear the :uses slot of TERM-ENTRY."
