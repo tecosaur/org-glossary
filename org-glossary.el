@@ -890,9 +890,9 @@ types will be used."
                     1))
            (trm (replace-regexp-in-string "^.+?:" "" index-term))
            (term-entry (org-glossary--quicklookup trm)))
-      (org-glossary--export-instance backend info term-entry
-                                      (if (= 1 index) :first-use :use)
-                                      index plural-p capitalized-p)
+      (org-glossary--export-instance
+       backend info term-entry (if (= 1 index) :first-use :use)
+       index plural-p capitalized-p)
     (funcall (if capitalized-p #'capitalize #'identity)
              (funcall (if plural-p org-glossary-plural-function #'identity)
                       trm))))
