@@ -765,8 +765,8 @@ producing a headline of level LEVEL (by default: 1)."
           (when use-letters-p
             (format-spec
              (plist-get export-spec :letter-separator)
-             `((?l . (string letter))
-               (?L . (string (upcase letter))))))
+             `((?l . ,(string letter))
+               (?L . ,(string (upcase letter))))))
           (unless (string= "" (plist-get export-spec :definition-structure-preamble))
             (concat (plist-get export-spec :definition-structure-preamble) "\n"))
           (mapconcat
