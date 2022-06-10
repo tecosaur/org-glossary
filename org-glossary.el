@@ -125,7 +125,7 @@ In practice, if using Emacs 28, this allows you to turn off
 grouping, and add the target type to the annotation instead."
   :type 'boolean)
 
-(defcustom org-glosssary-export-specs
+(defcustom org-glossary-export-specs
   '((t (t :use "%t"
           :first-use "%u"
           :definition "%t"
@@ -651,17 +651,17 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
 
 ;;; Export, general functionality
 
-(defvar-local org-glosssary--current-export-spec nil)
+(defvar-local org-glossary--current-export-spec nil)
 
 (defun org-glossary--get-export-specs (backend)
-  "Determine the relevant export specs for BACKEND from `org-glosssary-export-specs'."
-  (let* ((default-spec (alist-get t org-glosssary-export-specs))
+  "Determine the relevant export specs for BACKEND from `org-glossary-export-specs'."
+  (let* ((default-spec (alist-get t org-glossary-export-specs))
          (current-spec
           (or (cl-some
                (lambda (export-spec)
                  (when (org-export-derived-backend-p backend (car export-spec))
                    (cdr export-spec)))
-               org-glosssary-export-specs)
+               org-glossary-export-specs)
               default-spec))
          (default-template
            (org-combine-plists (alist-get t default-spec)
@@ -678,13 +678,13 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
           (mapcar complete-template
                   '(glossary acronym index substitutions)))))
 
-(defun org-glosssary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p)
-  "Export the FORM of TERM-ENTRY according to `org-glosssary--current-export-spec'.
+(defun org-glossary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p)
+  "Export the FORM of TERM-ENTRY according to `org-glossary--current-export-spec'.
 Auxillary information is encoded in,
 BACKEND, INFO, REF-INDEX, REF-INDEX, PLURAL-P, and CAPITALIZED-P."
   (let ((template (plist-get (alist-get
                               (plist-get term-entry :type)
-                              org-glosssary--current-export-spec)
+                              org-glossary--current-export-spec)
                              form))
         parameters)
     (cond
@@ -713,7 +713,7 @@ BACKEND, INFO, REF-INDEX, REF-INDEX, PLURAL-P, and CAPITALIZED-P."
         (push (cons ?r (number-to-string ref-index))
               parameters))
       (when (string-match-p "%u" template)
-        (push (cons ?u (org-glosssary--export-instance
+        (push (cons ?u (org-glossary--export-instance
                         backend info term-entry :use
                         ref-index plural-p capitalized-p))
               parameters))
@@ -732,7 +732,7 @@ producing a headline of level LEVEL (by default: 1)."
         export-spec)
     (mapconcat
      (lambda (type)
-       (setq export-spec (alist-get type org-glosssary--current-export-spec))
+       (setq export-spec (alist-get type org-glossary--current-export-spec))
        (concat
         (plist-get export-spec :heading)
         (and (plist-get export-spec :heading)
@@ -878,7 +878,7 @@ types will be used."
                     1))
            (trm (replace-regexp-in-string "^.+?:" "" index-term))
            (term-entry (org-glossary--quicklookup trm)))
-      (org-glosssary--export-instance backend info term-entry
+      (org-glossary--export-instance backend info term-entry
                                       (if (= 1 index) :first-use :use)
                                       index plural-p capitalized-p)
     (funcall (if capitalized-p #'capitalize #'identity)
@@ -894,7 +894,7 @@ types will be used."
 
 (defun org-glossary--link-export-glsdef (key _ backend info)
   (if-let ((term-entry (org-glossary--quicklookup key)))
-      (org-glosssary--export-instance backend info term-entry :definition)
+      (org-glossary--export-instance backend info term-entry :definition)
     term))
 
 (defun org-glossary--link-export-glsuse (index-term _desc backend info)
@@ -903,7 +903,7 @@ types will be used."
                     1))
            (trm (replace-regexp-in-string "^.+?:" "" index-term))
            (term-entry (org-glossary--quicklookup trm)))
-      (org-glosssary--export-instance backend info term-entry :backref index)
+      (org-glossary--export-instance backend info term-entry :backref index)
     index-term))
 
 ;;; Pluralisation
@@ -980,7 +980,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
   "Modify the buffer to resolve all defined terms, prepearing it for export.
 This should only be run as an export hook."
   (setq org-glossary--terms (org-glossary--get-terms-cached)
-        org-glosssary--current-export-spec
+        org-glossary--current-export-spec
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
   (let* ((used-terms (org-glossary-apply-terms org-glossary--terms))
