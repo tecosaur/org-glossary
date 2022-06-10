@@ -757,25 +757,30 @@ producing a headline of level LEVEL (by default: 1)."
           (and (> (apply #'+ terms-per-letter) 15)
                (> (apply #'max terms-per-letter) 3)
                (not (string= "" (plist-get export-spec :letter-separator))))))
-    (mapconcat
-     (lambda (letter-terms)
-       (let ((letter (car letter-terms))
-             (terms (cdr letter-terms)))
-         (concat
-          (when use-letters-p
-            (format-spec
-             (plist-get export-spec :letter-separator)
-             `((?l . ,(string letter))
-               (?L . ,(string (upcase letter))))))
-          (unless (string= "" (plist-get export-spec :definition-structure-preamble))
-            (concat (plist-get export-spec :definition-structure-preamble) "\n"))
-          (mapconcat
-           (lambda (trm)
-             (org-glossary--print-terms-singular export-spec trm))
-           terms
-           "\n"))))
-     assembled-terms
-     "\n")))
+    (concat
+     (and (not use-letters-p)
+          (not (string= "" (plist-get export-spec :definition-structure-preamble)))
+          (concat (plist-get export-spec :definition-structure-preamble) "\n"))
+     (mapconcat
+      (lambda (letter-terms)
+        (let ((letter (car letter-terms))
+              (terms (cdr letter-terms)))
+          (concat
+           (when use-letters-p
+             (concat
+              (format-spec
+               (plist-get export-spec :letter-separator)
+               `((?l . ,(string letter))
+                 (?L . ,(string (upcase letter)))))
+              (and (not (string= "" (plist-get export-spec :definition-structure-preamble)))
+                   (concat (plist-get export-spec :definition-structure-preamble) "\n"))))
+           (mapconcat
+            (lambda (trm)
+              (org-glossary--print-terms-singular export-spec trm))
+            terms
+            "\n"))))
+      assembled-terms
+      "\n"))))
 
 (defun org-glossary--print-terms-singular (export-spec term)
   (format-spec
