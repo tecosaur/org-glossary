@@ -46,7 +46,7 @@
 ;; TODO M-x org-glossary-find-expanded-terms
 ;; this would be primaraly useful for acronyms.
 ;;
-;; TODO org-glossary-global-definitions
+;; DONE org-glossary-global-terms
 ;;
 ;; TODO M-x org-glossary-create-definition
 ;;
@@ -124,6 +124,10 @@ During export, all subtrees starting with this heading will be removed."
 In practice, if using Emacs 28, this allows you to turn off
 grouping, and add the target type to the annotation instead."
   :type 'boolean)
+
+(defcustom org-glossary-global-terms nil
+  "A list of globally availible term sources."
+  :type '(list (choice string plist)))
 
 (defcustom org-glossary-export-specs
   '((t (t :use "%t"
@@ -212,19 +216,30 @@ TODO rewrite for clarity."
 
 ;;; Obtaining term definitions
 
-(defun org-glossary--get-terms (&optional path-spec)
+(defun org-glossary--get-terms (&optional path-spec include-global)
+  "Obtain all known terms in the current buffer.
+`org-glossary-global-terms' will be used unless PATH-SPEC
+is non-nil and INCLUDE-GLOBAL nil."
   (let ((term-source (org-glossary--get-terms-oneshot path-spec)))
-    (apply #'append
-           (plist-get term-source :terms)
-           (mapcar #'org-glossary--get-terms
-                   (plist-get term-source :included)))))
+    (org-glossary--maybe-add-global-terms
+     (apply #'append
+            (plist-get term-source :terms)
+            (mapcar #'org-glossary--get-terms
+                    (plist-get term-source :included)))
+     (or include-global (null path-spec)))))
+
+(defun org-glossary--maybe-add-global-terms (term-set do-it-p)
+  "Add terms from `org-glossary-global-terms' to TERM-SET."
+  (if do-it-p
+      (apply #'append
+             term-set
+             (mapcar #'org-glossary--get-terms-cached
+                     org-glossary-global-terms))
+    term-source))
 
 (defun org-glossary--get-terms-oneshot (&optional path-spec)
   "Optain all terms defined in PATH-SPEC."
-  (let* ((path-spec (or path-spec
-                        (org-glossary--parse-include-value
-                         (buffer-file-name))
-                        (current-buffer)))
+  (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (path-buffer
           (cond
            ((bufferp path-spec) path-spec)
@@ -254,6 +269,15 @@ TODO rewrite for clarity."
              (lambda (kwd)
                (when (string= "INCLUDE" (org-element-property :key kwd))
                  (org-element-property :value kwd))))))))
+
+(defun org-glossary--complete-path-spec (path-spec)
+  "Given a tentative PATH-SPEC, try to get a proper one."
+  (or (and (stringp path-spec)
+           (org-glossary--parse-include-value path-spec))
+      path-spec
+      (org-glossary--parse-include-value
+       (buffer-file-name))
+      (current-buffer)))
 
 (defun org-glossary--include-once (parameters)
   "Include content based on PARAMETERS."
@@ -348,11 +372,11 @@ a plist of the form:
    :terms TERM-LIST
    :included LIST-OF-PATH-SPECS)")
 
-(defun org-glossary--get-terms-cached (&optional path-spec)
-  "Obtain all known terms in the current buffer."
-  (let* ((path-spec (or path-spec
-                        (org-glossary--parse-include-value (buffer-file-name))
-                        (current-buffer)))
+(defun org-glossary--get-terms-cached (&optional path-spec include-global)
+  "Obtain all known terms in the current buffer, using the cache.
+`org-glossary-global-terms' will be used unless PATH-SPEC
+is non-nil and INCLUDE-GLOBAL nil."
+  (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (term-source-cached (assoc path-spec org-glossary--terms-cache))
          (cached-path (plist-get (cdr term-source-cached) :path))
          (cached-file (plist-get cached-path :file))
@@ -373,14 +397,15 @@ a plist of the form:
                      (delq term-source-cached org-glossary--terms-cache)
                      nil)
                    (cdr term-source-cached))
-              (cdar (push
-                     (cons path-spec
-                           (org-glossary--get-terms-oneshot path-spec))
-                     org-glossary--terms-cache)))))
-    (apply #'append
-           (plist-get term-source :terms)
-           (mapcar #'org-glossary--get-terms-cached
-                   (plist-get term-source :included)))))
+              (cadr (push (cons path-spec
+                                (org-glossary--get-terms-oneshot path-spec))
+                          org-glossary--terms-cache)))))
+    (org-glossary--maybe-add-global-terms
+     (apply #'append
+            (plist-get term-source :terms)
+            (mapcar #'org-glossary--get-terms-cached
+                    (plist-get term-source :included)))
+     (or include-global (null path-spec)))))
 
 (defun org-glossary-clear-cache ()
   "Clear the global term cache."
