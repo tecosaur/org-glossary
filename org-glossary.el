@@ -144,6 +144,8 @@ grouping, and add the target type to the annotation instead."
     (html (t :use "<a class=\"org-gls\" href=\"#gls.%k\" id=\"glsr.%k.%r\">%t</a>"
              :definition "<span class=\"org-glsdef\" id=\"gls.%k\">%t</span>"
              :backref "<a class=\"org-glsdef\" href=\"#glsr.%k.%r\">%r</a>"))
+    (ascii (t :definition-structure "*%d* %v [%n uses]\n")
+           (index :definition-structure "%d [%n uses]\n"))
     (org (t :use "<<gr;%k;%r>>[[g;%k][%t]]"
             :backref "[[gr;%k;%r][%r]]"
             :definition-structure "- <<g;%k>>%t :: %v\\ensp{}%b")
