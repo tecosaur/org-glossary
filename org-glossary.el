@@ -239,7 +239,7 @@ is non-nil and INCLUDE-GLOBAL nil."
              term-set
              (mapcar #'org-glossary--get-terms-cached
                      org-glossary-global-terms))
-    term-source))
+    term-set))
 
 (defun org-glossary--get-terms-oneshot (&optional path-spec)
   "Optain all terms defined in PATH-SPEC."
@@ -401,7 +401,7 @@ is non-nil and INCLUDE-GLOBAL nil."
                      (delq term-source-cached org-glossary--terms-cache)
                      nil)
                    (cdr term-source-cached))
-              (cadr (push (cons path-spec
+              (cdar (push (cons path-spec
                                 (org-glossary--get-terms-oneshot path-spec))
                           org-glossary--terms-cache)))))
     (org-glossary--maybe-add-global-terms
