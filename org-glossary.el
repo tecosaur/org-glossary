@@ -47,6 +47,8 @@
 ;;
 ;; TODO org-glossary-global-definitions
 ;;
+;; TODO M-x org-glossary-create-definition
+;;
 ;; TODO support #+print_glossary: :level N
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
