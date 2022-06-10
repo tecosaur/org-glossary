@@ -225,12 +225,16 @@ TODO rewrite for clarity."
          (parse-tree
           (if path-buffer
               (with-current-buffer path-buffer
-                (org-element-parse-buffer))
+                (save-restriction
+                  (widen)
+                  (org-element-parse-buffer)))
             (with-temp-buffer
               (setq buffer-file-name (plist-get path-spec :file))
               (org-glossary--include-once path-spec)
               (set-buffer-modified-p nil)
-              (org-element-parse-buffer)))))
+              (save-restriction
+                (widen)
+                (org-element-parse-buffer))))))
     (list :path path-spec
           :scan-time (current-time)
           :terms (org-glossary--extract-terms parse-tree)
@@ -380,7 +384,10 @@ a plist of the form:
   "Find all terms defined in the current buffer.
 Note that this removes definition values from PARSE-TREE by
 side-effect when it is provided."
-  (let* ((parse-tree (or parse-tree (org-element-parse-buffer)))
+  (let* ((parse-tree (or parse-tree
+                         (save-restriction
+                           (widen)
+                           (org-element-parse-buffer))))
          (buffer-file-name (org-element-property :path parse-tree)))
     (apply #'nconc
            (org-element-map
