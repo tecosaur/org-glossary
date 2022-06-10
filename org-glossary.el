@@ -734,17 +734,18 @@ BACKEND, INFO, REF-INDEX, REF-INDEX, PLURAL-P, and CAPITALIZED-P."
 Do this for each of TYPES (by default: glossary, acronym, and index),
 producing a headline of level LEVEL (by default: 1)."
   (let ((assembled-terms (org-glossary--assemble-terms terms types))
-        export-spec)
+        export-spec content)
     (mapconcat
      (lambda (type)
-       (setq export-spec (alist-get type org-glossary--current-export-spec))
-       (concat
-        (plist-get export-spec :heading)
-        (and (plist-get export-spec :heading)
-             "\n\n")
-        (org-glossary--print-terms-by-letter
-         export-spec
-         (alist-get type assembled-terms))))
+       (setq export-spec (alist-get type org-glossary--current-export-spec)
+             content (org-glossary--print-terms-by-letter
+                      export-spec (alist-get type assembled-terms)))
+       (and (not (string-empty-p content))
+            (concat
+             (plist-get export-spec :heading)
+             (and (plist-get export-spec :heading)
+                  "\n\n")
+             content)))
      (or types '(glossary acronym index))
      "\n")))
 
