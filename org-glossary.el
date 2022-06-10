@@ -450,12 +450,14 @@ side-effect when it is provided."
 
 (defun org-glossary-apply-terms (terms &optional no-modify no-number)
   "Replace occurances of the TERMS with links.
-This modifies TERMS to record uses of each term.
+This returns a copy of TERMS with references recorded in :uses.
 
-When NO-MODIFY is non-nil, the reference will be lodged in
-TERMS but the buffer content left unmodified."
+When NO-MODIFY is non-nil, the buffer content will not be modified.
+When NO-NUMBER is non-nil, all links created or modified shall not include
+a reference number."
   (interactive (list org-glossary--terms nil t))
-  (let ((terms-rx (org-glossary--construct-regexp terms))
+  (let ((terms (org-glossary--strip-uses terms))
+        (terms-rx (org-glossary--construct-regexp terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
         (case-fold-search nil)
         terms-used element-context)
@@ -483,6 +485,12 @@ TERMS but the buffer content left unmodified."
              (when (member (plist-get trm :key) terms-used)
                trm))
            terms))))
+
+(defun org-glossary--strip-uses (terms)
+  "Record a copy of TERMS with :uses set to nil."
+  (mapcar (lambda (term-entry)
+            (org-combine-plists term-entry '(:uses nil)))
+          terms))
 
 (defun org-glossary--construct-regexp (terms)
   "Create a regexp to find all occurances of TERMS.
@@ -1074,14 +1082,15 @@ This should only be run as an export hook."
   (interactive)
   (unless (eq major-mode 'org-mode)
     (user-error "You need to be in `org-mode' to use org-glossary."))
-  (setq org-glossary--terms (org-glossary--get-terms-cached)
-        org-glossary--term-regexp (org-glossary--construct-regexp org-glossary--terms)
+  (setq org-glossary--terms (org-glossary-apply-terms
+                             (org-glossary--get-terms-cached) t)
+        org-glossary--term-regexp (org-glossary--construct-regexp
+                                   org-glossary--terms)
         org-glossary--quicklookup-cache (make-hash-table :test #'equal))
   (when org-glossary-mode
     (save-restriction
       (widen)
-      (font-lock-flush)))
-  (org-glossary-apply-terms org-glossary--terms t))
+      (font-lock-flush))))
 
 (defun org-glossary--select-term (terms)
   "Select a term entry from TERMS."
