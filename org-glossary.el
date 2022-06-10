@@ -796,6 +796,8 @@ producing a headline of level LEVEL (by default: 1)."
   (format-spec
    (plist-get export-spec :definition-structure)
    `((?d . ,(format "[[glsdef:%s]]" (plist-get term :key)))
+     (?k . ,(plist-get term :key))
+     (?t . ,(plist-get term :term))
      (?v . ,(string-trim (org-element-interpret-data
                           (plist-get term :value))))
      (?b . ,(mapconcat
