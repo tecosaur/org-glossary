@@ -253,7 +253,7 @@ is non-nil and INCLUDE-GLOBAL nil."
      (or include-global (null path-spec)))))
 
 (defun org-glossary--maybe-add-global-terms (term-set do-it-p)
-  "Add terms from `org-glossary-global-terms' to TERM-SET."
+  "Add terms from `org-glossary-global-terms' to TERM-SET if non-nil DO-IT-P."
   (if do-it-p
       (apply #'append
              term-set
@@ -524,13 +524,14 @@ side-effect when it is provided."
 
 ;;; Term usage
 
-(defun org-glossary-apply-terms (terms &optional no-modify no-number)
+(defun org-glossary-apply-terms (terms &optional no-modify no-number keep-unused)
   "Replace occurances of the TERMS with links.
 This returns a copy of TERMS with references recorded in :uses.
 
 When NO-MODIFY is non-nil, the buffer content will not be modified.
 When NO-NUMBER is non-nil, all links created or modified shall not include
-a reference number."
+a reference number.
+When KEEP-UNUSED is non-nil, unused terms will be included in the result."
   (interactive (list org-glossary--terms nil t))
   (let ((terms (org-glossary--strip-uses terms))
         (terms-rx (org-glossary--construct-regexp terms))
@@ -873,13 +874,13 @@ no heading is produced."
                    (concat (plist-get export-spec :definition-structure-preamble) "\n"))))
            (mapconcat
             (lambda (term-entry)
-              (org-glossary--print-terms-singular backend type term-entry))
+              (org-glossary--print-terms-singular backend term-entry))
             terms
             "\n"))))
       assembled-terms
       "\n"))))
 
-(defun org-glossary--print-terms-singular (backend type term-entry)
+(defun org-glossary--print-terms-singular (backend term-entry)
   (org-glossary--export-instance
    backend nil term-entry :definition-structure
    nil nil nil
@@ -1020,7 +1021,7 @@ If SORT-P is non-nil, MAYBE-SORTED-TERMS will be sorted alphabetically."
 (defun org-glossary--link-export-glsdef (key _ backend info)
   (if-let ((term-entry (org-glossary--quicklookup key)))
       (org-glossary--export-instance backend info term-entry :definition)
-    term))
+    key))
 
 (defun org-glossary--link-export-glsuse (index-term _desc backend info)
   (if-let ((index (if (seq-contains-p index-term ?:)
