@@ -50,7 +50,7 @@
 ;;
 ;; TODO M-x org-glossary-create-definition
 ;;
-;; TODO support #+print_glossary: :level N
+;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
 ;; in the file, like org-toc.?
@@ -975,6 +975,93 @@ If SORT-P is non-nil, MAYBE-SORTED-TERMS will be sorted alphabetically."
      regions-to-delete)
     data))
 
+(defun org-glossary--extract-uses-in-region (terms begin end &optional types remove)
+  "Extract uses of TERMS that occur between BEGIN and END.
+If TYPES is non-nil, the extracted entries shall be restricted instances of TYPES.
+If REMOVE is non-nil, extracted uses shall be destructively removed from TERMS."
+  (let (region-terms)
+    (mapc
+     (lambda (term-entry)
+       (when (or (not types)
+                 (memq (plist-get term-entry :type) types))
+         (let ((remaining-uses (cons nil (plist-get term-entry :uses)))
+               region-term-uses)
+           (while (cdr remaining-uses)
+             (if (and (<= begin
+                          (org-element-property :begin (cdadr remaining-uses))
+                          (org-element-property :end (cdadr remaining-uses))
+                          end)
+                      (push (cadr remaining-uses) region-term-uses)
+                      remove)
+                 (progn
+                   (setcdr remaining-uses (cddr remaining-uses))
+                   (unless (car remaining-uses) ; When removing the first element.
+                     (plist-put term-entry :uses (cdr remaining-uses))))
+               (setq remaining-uses (cdr remaining-uses))))
+           (when region-term-uses
+             (push (org-combine-plists
+                    term-entry (list :uses region-term-uses))
+                   region-terms)))))
+     terms)
+    (nreverse region-terms)))
+
+(defun org-glossary--expand-print (backend terms &optional parameters)
+  "Generate string defining TERMS in BACKEND, according to PARAMETERS."
+  (org-glossary--print-terms
+   backend terms
+   (plist-get parameters :types)
+   (if (plist-get parameters :only-contents)
+       0
+     (1+ (plist-get parameters :level)))))
+
+(defun org-glossary--expand-print-keyword (backend terms keyword)
+  "Call `org-glossary--expand-print' with paramaters and terms based on KEYWORD.
+BACKEND is passed through unmodified, but TERMS may be modified depending on
+the :consume parameter extracted from KEYWORD."
+  (let ((heading (org-element-lineage keyword '(headline org-data)))
+        (parameters (org-combine-plists
+                     org-glossary--default-print-keyword-parameters
+                     (org-glossary--parse-print-keyword-value
+                      (org-element-property :value keyword)))))
+    (while (and (not (eq (org-element-type heading) 'org-data))
+                (> (org-element-property :level heading)
+                   (plist-get parameters :level)))
+      (setq heading (org-element-lineage heading '(headline org-data))))
+    (org-glossary--expand-print
+     backend
+     (org-glossary--extract-uses-in-region
+      terms
+      (org-element-property :begin heading)
+      (org-element-property :end heading)
+      (plist-get parameters :type)
+      (plist-get parameters :consume))
+     parameters)))
+
+(defun org-glossary--parse-print-keyword-value (value)
+  "Parse the string VALUE to a parameter plist."
+  (let ((res '()))
+    (dolist (pair (org-babel-parse-header-arguments value))
+      (push (car pair) res)
+      (push
+       (pcase (car pair)
+         (:type (mapcar #'intern (split-string (cdr pair))))
+         (:consume (and (stringp (cdr pair))
+                        (or (string= "t" (cdr pair))
+                            (string= "yes" (cdr pair)))))
+         (:only-contents (and (stringp (cdr pair))
+                              (or (string= "t" (cdr pair))
+                                  (string= "yes" (cdr pair)))))
+         (_ (cdr pair)))
+       res))
+    (nreverse res)))
+
+(defvar org-glossary--default-print-keyword-parameters
+  '(:type (glossary acronym index)
+    :level 0
+    :consume nil
+    :only-contents nil)
+  "The default #+print_glossary parameters.")
+
 ;;; Link definitions
 
 (org-link-set-parameters "gls"
@@ -1118,11 +1205,21 @@ This should only be run as an export hook."
         org-glossary--current-export-spec
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
-  (let* ((used-terms (org-glossary-apply-terms org-glossary--terms))
-         (glossary-section (org-glossary--print-terms backend used-terms)))
+  (let ((used-terms (org-glossary-apply-terms org-glossary--terms))
+        keyword print-glossary-p)
     (save-excursion
-      (goto-char (point-max))
-      (insert "\n" (org-element-interpret-data glossary-section)))))
+      (goto-char (point-min))
+      (while (re-search-forward "^[ \t]*#\\+print_glossary:" nil t)
+        (setq print-glossary-p t
+              keyword (org-element-context))
+        (delete-region (org-element-property :begin keyword)
+                       (- (org-element-property :end keyword)
+                          (org-element-property :post-blank keyword)
+                          1))
+        (insert (org-glossary--expand-print-keyword backend used-terms keyword)))
+      (unless print-glossary-p
+        (goto-char (point-max))
+        (insert "\n" (org-glossary--print-terms backend used-terms))))))
 
 (add-hook 'org-export-before-parsing-hook #'org-glossary--prepare-buffer)
 
