@@ -141,10 +141,10 @@ grouping, and add the target type to the annotation instead."
           :definition-structure-preamble ""
           :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
           :letter-separator "*%L*\n")
-       (glossary :heading "* Glossary")
-       (acronym :heading "* Acronyms"
+       (glossary :heading "Glossary")
+       (acronym :heading "Acronyms"
                 :first-use "%v (%u)")
-       (index :heading "* Index"
+       (index :heading "Index"
               :definition-structure "%d\\ensp{}%b\n"))
     (latex (t :use "\\hyperlink{gls-%k}{\\label{gls-%k-use-%r}%t}"
               :definition "\\hypertarget{gls-%k}{%t}"
@@ -816,8 +816,11 @@ optional arguments:
 (defun org-glossary--print-terms (backend terms &optional types level)
   "Produce an org-mode AST defining TERMS for BACKEND.
 Do this for each of TYPES (by default: glossary, acronym, and index),
-producing a headline of level LEVEL (by default: 1)."
+producing a heading of level LEVEL (by default: 1). If LEVEL is set to 0,
+no heading is produced."
+  (message "- level: %s" level)
   (let ((assembled-terms (org-glossary--assemble-terms terms types t t))
+        (level (or level 1))
         export-spec content)
     (mapconcat
      (lambda (type)
@@ -825,10 +828,14 @@ producing a headline of level LEVEL (by default: 1)."
              content (org-glossary--print-terms-by-letter
                       backend type (alist-get type assembled-terms)))
        (and (not (string-empty-p content))
-            (concat
-             (plist-get export-spec :heading)
-             (and (plist-get export-spec :heading) "\n")
-             content)))
+            (if (> level 0)
+                (concat
+                 (make-string level ?*)
+                 " "
+                 (plist-get export-spec :heading)
+                 "\n"
+                 content)
+              content)))
      (or types '(glossary acronym index))
      "\n")))
 
