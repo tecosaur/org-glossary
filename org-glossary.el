@@ -558,13 +558,15 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                             terms no-modify no-number)
                            :key)
                 terms-used)))))
-    (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
-    (delq nil
-          (mapcar
-           (lambda (trm)
-             (when (member (plist-get trm :key) terms-used)
-               trm))
-           terms))))
+    (if keep-unused
+        terms
+      (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
+      (delq nil
+            (mapcar
+             (lambda (trm)
+               (when (member (plist-get trm :key) terms-used)
+                 trm))
+             terms)))))
 
 (defun org-glossary--strip-uses (terms)
   "Record a copy of TERMS with :uses set to nil."
@@ -817,13 +819,20 @@ optional arguments:
 
 ;;; Export used term definitions
 
-(defun org-glossary--print-terms (backend terms &optional types level)
+(defun org-glossary--print-terms (backend terms &optional types level keep-unused)
   "Produce an org-mode AST defining TERMS for BACKEND.
 Do this for each of TYPES (by default: glossary, acronym, and index),
 producing a heading of level LEVEL (by default: 1). If LEVEL is set to 0,
-no heading is produced."
-  (message "- level: %s" level)
-  (let ((assembled-terms (org-glossary--assemble-terms terms types t t))
+no heading is produced.
+Unless keep-unused is non-nil, only used terms will be included."
+  (let ((assembled-terms (org-glossary--assemble-terms
+                          (if keep-unused
+                              terms
+                            (cl-remove-if
+                             (lambda (trm)
+                               (= (length (plist-get trm :uses)) 0))
+                             terms))
+                          types t t))
         (level (or level 1))
         export-spec content)
     (mapconcat
@@ -1240,7 +1249,8 @@ This should only be run as an export hook."
   (unless (eq major-mode 'org-mode)
     (user-error "You need to be in `org-mode' to use org-glossary."))
   (setq org-glossary--terms (org-glossary-apply-terms
-                             (org-glossary--get-terms-cached) t)
+                             (org-glossary--get-terms-cached)
+                             t nil t)
         org-glossary--term-regexp (org-glossary--construct-regexp
                                    org-glossary--terms)
         org-glossary--quicklookup-cache (make-hash-table :test #'equal))
