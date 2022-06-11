@@ -210,6 +210,11 @@ TODO rewrite for clarity."
                        (plist :value-type
                               (string :tag "Template")))))
 
+(defcustom org-glossary-fontify-types-differently t
+  "Whether to use the org-glossary-TYPE-term faces.
+Or just use the org-glossary-term face for everything."
+  :type 'boolean)
+
 (defface org-glossary-term
   '((t :inherit (org-agenda-date-today org-link) :weight normal))
   "Base face used for term references.")
@@ -1104,10 +1109,24 @@ This should only be run as an export hook."
 (defvar-local org-glossary--term-regexp nil
   "A regexp matching all known forms of terms.")
 
-(defvar org-glossary--font-lock-keywords
+(defvar-local org-glossary--font-lock-keywords
   '((org-glossary--fontify-find-next
      (0 (org-glossary--fontify-term))))
   "`font-lock-keywords' entry that fontifies term references.")
+
+(defun org-glossary--set-font-lock-keywords (&optional per-term-p)
+  "Set `org-glossary--font-lock-keywords' according to PER-TERM-P."
+  (setq org-glossary--font-lock-keywords
+        (if per-term-p
+            '((org-glossary--fontify-find-next
+               (0 (org-glossary--fontify-term))))
+          '((org-glossary--fontify-find-next
+             (0 '(face org-glossary-term
+                       help-echo org-glossary--term-help-echo
+                       keymap (keymap
+                               (follow-link . org-glossary-term-definition)
+                               (mouse-2 . org-glossary-term-definition))) t)))))
+  per-term-p)
 
 (define-minor-mode org-glossary-mode
   "Glossary term fontification, and enhanced interaction."
@@ -1115,6 +1134,7 @@ This should only be run as an export hook."
   :group 'org-glossary
   (cond
    ((and org-glossary-mode org-glossary-automatic)
+    (org-glossary--set-font-lock-keywords org-glossary-fontify-types-differently)
     (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append)
     (org-glossary-update-terms))
    (t (font-lock-remove-keywords nil org-glossary--font-lock-keywords)
