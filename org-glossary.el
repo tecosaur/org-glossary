@@ -540,9 +540,12 @@ a reference number."
     (save-excursion
       (goto-char (point-min))
       (while (re-search-forward terms-rx nil t)
-        (setq element-context (save-match-data (org-element-context)))
+        (save-match-data
+          (setq element-at-point (org-element-at-point)
+                element-context (org-element-context element-at-point)))
         (cond
          ((org-glossary--within-definition-p element-context) nil) ; skip
+         ((eq 'headline (org-element-type element-at-point)) nil)  ; skip
          ((eq 'link (org-element-type element-context))
           (push (plist-get (org-glossary--update-link
                             terms element-context no-modify no-number)
@@ -1153,12 +1156,14 @@ This should only be run as an export hook."
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
-  (let (match-p exit element-context)
+  (let (match-p exit element-at-point element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
       (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
       (save-match-data
-        (setq element-context (org-element-context))
+        (setq element-at-point (org-element-at-point)
+              element-context (org-element-context element-at-point))
         (when (and (not exit)
+                   (not (eq 'headline (org-element-type element-at-point)))
                    (memq 'link (org-element-restriction element-context))
                    (not (org-glossary--within-definition-p element-context)))
           ;; HACK For some strange reason, if I don't move point forwards
