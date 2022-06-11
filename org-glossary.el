@@ -210,9 +210,24 @@ TODO rewrite for clarity."
                        (plist :value-type
                               (string :tag "Template")))))
 
-
 (defface org-glossary-term
   '((t :inherit (org-agenda-date-today org-link) :weight normal))
+  "Base face used for term references.")
+
+(defface org-glossary-glossary-term
+  '((t :inherit org-glossary-term))
+  "Face used for term references.")
+
+(defface org-glossary-acronym-term
+  '((t :inherit org-glossary-term))
+  "Face used for term references.")
+
+(defface org-glossary-index-term
+  '((t :inherit (org-scheduled-previously org-glossary-term) :weight normal))
+  "Face used for term references.")
+
+(defface org-glossary-substitution-term
+  '((t :inherit (org-archived org-glossary-term)))
   "Face used for term references.")
 
 (defvar-local org-glossary--terms nil
@@ -1091,11 +1106,7 @@ This should only be run as an export hook."
 
 (defvar org-glossary--font-lock-keywords
   '((org-glossary--fontify-find-next
-     (0 '(face org-glossary-term
-               help-echo org-glossary--term-help-echo
-               keymap (keymap
-                       (follow-link . org-glossary-term-definition)
-                       (mouse-2 . org-glossary-term-definition))) t)))
+     (0 (org-glossary--fontify-term))))
   "`font-lock-keywords' entry that fontifies term references.")
 
 (define-minor-mode org-glossary-mode
@@ -1129,6 +1140,20 @@ This should only be run as an export hook."
           (forward-char 1)
           (setq exit t match-p t))))
     match-p))
+
+(defun org-glossary--fontify-term ()
+  (add-text-properties
+   (match-beginning 0) (match-end 0)
+   `(face ,(pcase (plist-get (org-glossary--quicklookup (match-string 0)) :type)
+             ('glossary 'org-glossary-glossary-term)
+             ('acronym 'org-glossary-acronym-term)
+             ('index 'org-glossary-index-term)
+             ('substitution 'org-glossary-substitution-term))
+          help-echo org-glossary--term-help-echo
+          og--test ,(substring-no-properties (match-string 0))
+          keymap (keymap
+                  (follow-link . org-glossary-term-definition)
+                  (mouse-2 . org-glossary-term-definition)))))
 
 (defun org-glossary--term-help-echo (_window object pos)
   "Find the term reference at POS in OBJECT, and get the definition."
