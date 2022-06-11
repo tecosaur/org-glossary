@@ -880,7 +880,9 @@ producing a headline of level LEVEL (by default: 1)."
              (lambda (use)
                (format "[[glsuse:%d:%s]]"
                        (car use) (plist-get term-entry :key)))
-             (plist-get term-entry :uses)
+             (cl-sort
+              (plist-get term-entry :uses)
+              #'< :key #'car)
              ", ")))))
 
 (defun org-glossary--assemble-terms (terms &optional types sort-p split-letters)
