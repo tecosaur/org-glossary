@@ -50,6 +50,8 @@
 ;;
 ;; TODO M-x org-glossary-create-definition
 ;;
+;; TODO support named indicies/index sections
+;;
 ;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
