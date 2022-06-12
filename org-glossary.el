@@ -1083,23 +1083,23 @@ the :consume parameter extracted from KEYWORD."
                          :export #'org-glossary--link-export-Glspl
                          :face 'org-glossary-term)
 
-(defun org-glossary--link-export-gls (it _description backend info)
-  "Export a gls link to term IT with BACKEND."
-  (org-glossary--link-export it backend info nil nil))
+(defun org-glossary--link-export-gls (index-term description backend info)
+  "Export a gls link to term index-term with BACKEND."
+  (org-glossary--link-export backend info index-term description nil nil))
 
-(defun org-glossary--link-export-glspl (it _description backend info)
-  "Export a glspl link to term IT with BACKEND."
-  (org-glossary--link-export it backend info t nil))
+(defun org-glossary--link-export-glspl (index-term description backend info)
+  "Export a glspl link to term index-term with BACKEND."
+  (org-glossary--link-export backend info index-term description t nil))
 
-(defun org-glossary--link-export-Gls (it _description backend info)
-  "Export a Gls link to term IT with BACKEND."
-  (org-glossary--link-export it backend info nil t))
+(defun org-glossary--link-export-Gls (index-term description backend info)
+  "Export a Gls link to term index-term with BACKEND."
+  (org-glossary--link-export backend info index-term description nil t))
 
-(defun org-glossary--link-export-Glspl (it _description backend info)
-  "Export a Glspl link to term IT with BACKEND."
-  (org-glossary--link-export it backend info t t))
+(defun org-glossary--link-export-Glspl (index-term description backend info)
+  "Export a Glspl link to term index-term with BACKEND."
+  (org-glossary--link-export backend info index-term description t t))
 
-(defun org-glossary--link-export (index-term backend info &optional plural-p capitalized-p)
+(defun org-glossary--link-export (backend info index-term description &optional plural-p capitalized-p)
   "Export a link to TERM with BACKEND, respecting PLURAL-P and CAPITALIZED-P."
   (if-let ((index (if (seq-contains-p index-term ?:)
                       (string-to-number (car (split-string index-term ":")))
