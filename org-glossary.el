@@ -217,6 +217,11 @@ TODO rewrite for clarity."
 Or just use the org-glossary-term face for everything."
   :type 'boolean)
 
+(defcustom org-glossary-display-substitute-value t
+  "Whether to display substitutions as their value.
+Requires `org-glossary-fontify-types-differently' to be non-nil."
+  :type 'boolean)
+
 (defface org-glossary-term
   '((t :inherit (org-agenda-date-today org-link) :weight normal))
   "Base face used for term references.")
@@ -236,6 +241,10 @@ Or just use the org-glossary-term face for everything."
 (defface org-glossary-substitution-term
   '((t :inherit (org-archived org-glossary-term)))
   "Face used for term references.")
+
+(defface org-glossary-substituted-value
+  '((t :inherit default))
+  "Face used for substitution values.")
 
 (defvar-local org-glossary--terms nil
   "The currently known terms.")
@@ -1309,18 +1318,30 @@ This should only be run as an export hook."
     match-p))
 
 (defun org-glossary--fontify-term ()
-  (add-text-properties
-   (match-beginning 0) (match-end 0)
-   `(face ,(pcase (plist-get (org-glossary--quicklookup (match-string 0)) :type)
-             ('glossary 'org-glossary-glossary-term)
-             ('acronym 'org-glossary-acronym-term)
-             ('index 'org-glossary-index-term)
-             ('substitution 'org-glossary-substitution-term))
-          help-echo org-glossary--term-help-echo
-          og--test ,(substring-no-properties (match-string 0))
-          keymap (keymap
-                  (follow-link . org-glossary-term-definition)
-                  (mouse-2 . org-glossary-term-definition)))))
+  "Fontify the matched term."
+  (let ((term-entry (org-glossary--quicklookup (match-string 0))))
+    (add-text-properties
+     (match-beginning 0) (match-end 0)
+     (nconc
+      (pcase (plist-get term-entry :type)
+        ('glossary '(face org-glossary-glossary-term))
+        ('acronym '(face org-glossary-acronym-term))
+        ('index '(face org-glossary-index-term))
+        ('substitution
+         (if org-glossary-display-substitute-value
+             `(face org-glossary-substituted-value
+                    mouse-face org-glossary-substitution-term
+                    display
+                    ,(string-trim
+                      (substring-no-properties
+                       (org-element-interpret-data
+                        (plist-get term-entry :value)))))
+           '(face org-glossary-substitution-term))))
+      `(help-echo
+        org-glossary--term-help-echo
+        keymap (keymap
+                (follow-link . org-glossary-term-definition)
+                (mouse-2 . org-glossary-term-definition)))))))
 
 (defun org-glossary--term-help-echo (_window object pos)
   "Find the term reference at POS in OBJECT, and get the definition."
