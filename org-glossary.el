@@ -547,8 +547,12 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
           (setq element-at-point (org-element-at-point)
                 element-context (org-element-context element-at-point)))
         (cond
-         ((org-glossary--within-definition-p element-context) nil) ; skip
-         ((eq 'headline (org-element-type element-at-point)) nil)  ; skip
+         ((or (org-glossary--within-definition-p element-context)
+              (eq 'headline (org-element-type element-at-point))
+              (and (eq 'keyword (org-element-type element-at-point))
+                   (not (member (org-element-property :key element-at-point)
+                                org-element-parsed-keywords))))
+          nil) ; Skip, not a valid reference.
          ((eq 'link (org-element-type element-context))
           (push (plist-get (org-glossary--update-link
                             terms element-context no-modify no-number)
@@ -1274,6 +1278,10 @@ This should only be run as an export hook."
         (when (and (not exit)
                    (not (eq 'headline (org-element-type element-at-point)))
                    (memq 'link (org-element-restriction element-context))
+                   (if (eq 'keyword (org-element-type element-at-point))
+                       (member (org-element-property :key element-at-point)
+                               org-element-parsed-keywords)
+                     t)
                    (not (org-glossary--within-definition-p element-context)))
           ;; HACK For some strange reason, if I don't move point forwards
           ;; here, this function will end up being called again and again
