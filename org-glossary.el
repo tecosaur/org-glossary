@@ -1114,7 +1114,10 @@ the :consume parameter extracted from KEYWORD."
            (term-entry (org-glossary--quicklookup trm)))
       (org-glossary--export-instance
        backend info term-entry (if (= 1 index) :first-use :use)
-       index plural-p capitalized-p)
+       index plural-p capitalized-p
+       (and (stringp description)
+            (string= description "org-glossary-index-stub")
+            '((?t . "") (?u . "%t"))))
     (funcall (if capitalized-p #'capitalize #'identity)
              (funcall (if plural-p org-glossary-plural-function #'identity)
                       trm))))
@@ -1217,6 +1220,13 @@ This should only be run as an export hook."
         org-glossary--current-export-spec
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
+  (let ((index-terms-rx (format "^[ \t]*#\\+[cfkptv]?index:[ \t]*\\(%s\\)$"
+                                (org-glossary--construct-regexp
+                                 org-glossary--terms))))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward index-terms-rx nil t)
+        (replace-match "[[gls:\\1][org-glossary-index-stub]]"))))
   (let ((used-terms (org-glossary-apply-terms org-glossary--terms))
         keyword print-glossary-p)
     (save-excursion
