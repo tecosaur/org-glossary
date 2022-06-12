@@ -824,7 +824,8 @@ optional arguments:
     (when (string-match-p "%u" template)
       (push (cons ?u (org-glossary--export-instance
                       backend info term-entry :use
-                      ref-index plural-p capitalized-p))
+                      ref-index plural-p capitalized-p
+                      extra-parameters))
             parameters))
     (format-spec template (nreverse parameters))))
 
