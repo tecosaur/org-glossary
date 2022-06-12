@@ -635,7 +635,9 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
                  "^.+?:" ""
                  (org-element-property :path link)))
            (term-entry (org-glossary--find-term-entry terms trm :key))
-           (index (org-glossary--record-term-usage term-entry link)))
+           (index (org-glossary--record-term-usage term-entry link))
+           (contents-begin (org-element-property :contents-begin link))
+           (contents-end (org-element-property :contents-end link)))
       (org-element-put-property
        link :path (if no-number trm
                     (concat (number-to-string index) ":" trm)))
@@ -644,7 +646,10 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
          (org-element-property :begin link)
          (- (org-element-property :end link)
             (org-element-property :post-blank link))
-         (lambda () (org-element-link-interpreter link nil))))
+         (lambda () (org-element-link-interpreter
+                link
+                (and contents-begin contents-end
+                     (buffer-substring contents-begin contents-end))))))
       term-entry)))
 
 (defun org-glossary--update-plain (terms &optional no-modify no-number)
