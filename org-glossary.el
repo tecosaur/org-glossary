@@ -847,21 +847,18 @@ Do this for each of TYPES (by default: glossary, acronym, and index),
 producing a heading of level LEVEL (by default: 1). If LEVEL is set to 0,
 no heading is produced.
 Unless keep-unused is non-nil, only used terms will be included."
-  (let ((assembled-terms (org-glossary--assemble-terms
-                          (if keep-unused
-                              terms
-                            (cl-remove-if
-                             (lambda (trm)
-                               (= (length (plist-get trm :uses)) 0))
-                             terms))
-                          types t t))
+  (let ((terms-by-type
+         (org-glossary--group-terms
+          (org-glossary--sort-plist terms :key #'string<)
+          (lambda (trm) (plist-get trm :type))
+          (or types '(glossary acronym index))))
         (level (or level 1))
         export-spec content)
     (mapconcat
-     (lambda (type)
-       (setq export-spec (alist-get type org-glossary--current-export-spec)
+     (lambda (type-terms)
+       (setq export-spec (alist-get (car type-terms) org-glossary--current-export-spec)
              content (org-glossary--print-terms-by-letter
-                      backend type (alist-get type assembled-terms)))
+                      backend (car type-terms) (cdr type-terms)))
        (and (not (string-empty-p content))
             (if (> level 0)
                 (concat
@@ -871,18 +868,19 @@ Unless keep-unused is non-nil, only used terms will be included."
                  "\n"
                  content)
               content)))
-     (or types '(glossary acronym index))
+     terms-by-type
      "\n")))
 
-(defun org-glossary--print-terms-by-letter (backend type assembled-terms)
+(defun org-glossary--print-terms-by-letter (backend type terms)
   "Produce an org-mode AST for TYPE in BACKEND defining ASSEMBLED-TERMS."
-  (let* ((terms-per-letter
-          (mapcar (lambda (tms) (length (cdr tms)))
-                  assembled-terms))
+  (let* ((terms-by-letter
+          (org-glossary--group-terms
+           (org-glossary--sort-plist terms :key #'string<)
+           (lambda (trm) (aref (plist-get trm :key) 0))))
          (export-spec (alist-get type org-glossary--current-export-spec))
          (use-letters-p
-          (and (> (apply #'+ terms-per-letter) 15)
-               (> (apply #'max terms-per-letter) 3)
+          (and (> (apply #'+ terms-by-letter) 15)
+               (> (apply #'max terms-by-letter) 3)
                (not (string-empty-p (plist-get export-spec :letter-separator))))))
     (concat
      (and (not use-letters-p)
@@ -908,7 +906,7 @@ Unless keep-unused is non-nil, only used terms will be included."
               (org-glossary--print-terms-singular backend term-entry))
             terms
             "\n"))))
-      assembled-terms
+      terms-by-letter
       "\n"))))
 
 (defun org-glossary--print-terms-singular (backend term-entry)
@@ -927,44 +925,27 @@ Unless keep-unused is non-nil, only used terms will be included."
               #'< :key #'car)
              ", ")))))
 
-(defun org-glossary--assemble-terms (terms &optional types sort-p split-letters)
-  "Collect TERMS into the form ((type . TERM-FORMS)...).
-When a list of TYPES is provided, only terms which are of one of the provided
-types will be used.
-
-When SPLIT-LETTERS is non-nil TERM-FORMS will be of the form,
-  ((first-char . MAYBE-SORTED-TERMS)...)
-otherwise it will just be MAYBE-SORTED-TERMS.
-
-If SORT-P is non-nil, MAYBE-SORTED-TERMS will be sorted alphabetically."
-  (mapcar
-   (lambda (type)
-     (cons type
-           (let ((type-terms
-                  (cl-remove-if-not
-                   (lambda (trm) (eq type (plist-get trm :type)))
-                   terms)))
-             (when sort-p
-               (setq type-terms
-                     (org-glossary--sort-plist type-terms :key #'string<)))
-             (if split-letters
-                 (org-glossary--assemble-terms-by-char type-terms)
-               type-terms))))
-   (or types (cl-delete-duplicates
-              (mapcar (lambda (trm) (plist-get trm :type)) terms)))))
-
-(defun org-glossary--assemble-terms-by-char (terms)
-  "Collect TERMS into the form ((first-char . TERMS-LIST)...)."
-  (mapcar
-   (lambda (first-char)
-     (cons first-char
-           (cl-remove-if-not
-            (lambda (trm)
-              (eq first-char (aref (plist-get trm :key) 0)))
-            terms)))
-   (cl-delete-duplicates
-    (mapcar (lambda (trm) (aref (plist-get trm :key) 0))
-            terms))))
+(defun org-glossary--group-terms (terms predicate &optional include)
+  "Group TERMS according to PREDICATE, and only INCLUDE certain groups (if non-nil)."
+  (let (groups grp)
+    (dolist (trm terms)
+      (setq grp (funcall predicate trm))
+      (push trm
+            (cdr (or (assoc grp groups)
+                     (car (push (cons grp nil)
+                                groups))))))
+    (mapcar
+     (lambda (group-terms)
+       (cons (car group-terms)
+             (nreverse (cdr group-terms))))
+     (if include
+         (cl-remove-if
+          (lambda (group-terms)
+            (and include
+                 (not (member (car group-terms)
+                              include))))
+          groups)
+       groups))))
 
 (defun org-glossary--sort-plist (plist key predicate)
   "Sort PLIST by KEY according to PREDICATE."
