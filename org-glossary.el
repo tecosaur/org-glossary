@@ -257,19 +257,19 @@ Requires `org-glossary-fontify-types-differently' to be non-nil."
 is non-nil and INCLUDE-GLOBAL nil."
   (let ((term-source (org-glossary--get-terms-oneshot path-spec)))
     (org-glossary--maybe-add-global-terms
+     #'org-glossary--get-terms
      (apply #'append
             (plist-get term-source :terms)
             (mapcar #'org-glossary--get-terms
                     (plist-get term-source :included)))
      (or include-global (null path-spec)))))
 
-(defun org-glossary--maybe-add-global-terms (term-set do-it-p)
-  "Add terms from `org-glossary-global-terms' to TERM-SET if non-nil DO-IT-P."
+(defun org-glossary--maybe-add-global-terms (term-getter term-set do-it-p)
+  "Apply TERM-GETTER to `org-glossary-global-terms' and add to TERM-SET if non-nil DO-IT-P."
   (if do-it-p
       (apply #'append
              term-set
-             (mapcar #'org-glossary--get-terms-cached
-                     org-glossary-global-terms))
+             (mapcar term-getter org-glossary-global-terms))
     term-set))
 
 (defun org-glossary--get-terms-oneshot (&optional path-spec)
@@ -436,6 +436,7 @@ is non-nil and INCLUDE-GLOBAL nil."
                                 (org-glossary--get-terms-oneshot path-spec))
                           org-glossary--terms-cache)))))
     (org-glossary--maybe-add-global-terms
+     #'org-glossary--get-terms-cached
      (apply #'append
             (plist-get term-source :terms)
             (mapcar #'org-glossary--get-terms-cached
@@ -1225,7 +1226,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 (defun org-glossary--prepare-buffer (&optional backend)
   "Modify the buffer to resolve all defined terms, prepearing it for export.
 This should only be run as an export hook."
-  (setq org-glossary--terms (org-glossary--get-terms-cached)
+  (setq org-glossary--terms (org-glossary--get-terms-cached nil t)
         org-glossary--current-export-spec
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
@@ -1393,7 +1394,7 @@ This should only be run as an export hook."
   (unless (eq major-mode 'org-mode)
     (user-error "You need to be in `org-mode' to use org-glossary."))
   (setq org-glossary--terms (org-glossary-apply-terms
-                             (org-glossary--get-terms-cached)
+                             (org-glossary--get-terms-cached nil t)
                              t nil t)
         org-glossary--term-regexp (org-glossary--construct-regexp
                                    org-glossary--terms)
