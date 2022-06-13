@@ -1393,12 +1393,32 @@ This should only be run as an export hook."
   (interactive)
   (unless (eq major-mode 'org-mode)
     (user-error "You need to be in `org-mode' to use org-glossary."))
-  (setq org-glossary--terms (org-glossary-apply-terms
-                             (org-glossary--get-terms-cached nil t)
-                             t nil t)
-        org-glossary--term-regexp (org-glossary--construct-regexp
-                                   org-glossary--terms)
-        org-glossary--quicklookup-cache (make-hash-table :test #'equal))
+  (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
+                               org-glossary--terms))
+        current-terms added-terms removed-terms)
+    (setq org-glossary--terms (org-glossary-apply-terms
+                               (org-glossary--get-terms-cached nil t)
+                               t nil t)
+          org-glossary--term-regexp (org-glossary--construct-regexp
+                                     org-glossary--terms)
+          org-glossary--quicklookup-cache (make-hash-table :test #'equal))
+    (setq current-terms (mapcar (lambda (trm) (plist-get trm :term))
+                                org-glossary--terms)
+          added-terms (cl-set-difference current-terms initial-terms :test #'string=)
+          removed-terms (cl-set-difference initial-terms current-terms :test #'string=))
+    (when (or added-terms removed-terms)
+      (message "%s"
+               (concat
+                "org-glossary: "
+                (and added-terms
+                     (format "%s term%s added"
+                             (length added-terms)
+                             (if (> (length added-terms) 1) "s" "")))
+                (and added-terms removed-terms ", ")
+                (and removed-terms
+                     (format "%s term%s removed"
+                             (length removed-terms)
+                             (if (> (length removed-terms) 1) "s" "")))))))
   (when org-glossary-mode
     (save-restriction
       (widen)
