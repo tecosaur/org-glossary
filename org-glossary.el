@@ -928,10 +928,12 @@ Unless keep-unused is non-nil, only used terms will be included."
           (org-glossary--group-terms
            (org-glossary--sort-plist terms :key #'string<)
            (lambda (trm) (aref (plist-get trm :key) 0))))
+         (num-terms-by-letter (mapcar (lambda (trms) (length (cdr trms)))
+                                      terms-by-letter))
          (export-spec (alist-get type org-glossary--current-export-spec))
          (use-letters-p
-          (and (> (apply #'+ terms-by-letter) 15)
-               (> (apply #'max terms-by-letter) 3)
+          (and (> (apply #'+ num-terms-by-letter) 15)
+               (> (apply #'max num-terms-by-letter) 3)
                (not (string-empty-p (plist-get export-spec :letter-separator))))))
     (concat
      (and (not use-letters-p)
@@ -1265,7 +1267,7 @@ This should only be run as an export hook."
                           (cl-remove-if
                            (lambda (trm)
                              (not (eq (plist-get trm :type) 'index)))
-                           terms))))
+                           org-glossary--terms))))
     (save-excursion
       (goto-char (point-min))
       (while (org-glossary--mrx-search-forward index-terms-mrx)
