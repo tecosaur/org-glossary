@@ -549,10 +549,18 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
         (terms-mrx (org-glossary--mrx-construct-from-terms terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
         (case-fold-search nil)
+        (start-time (float-time))
+        (last-redisplay (float-time))
         terms-used element-context)
     (save-excursion
       (goto-char (point-min))
       (while (org-glossary--mrx-search-forward terms-mrx)
+        (when (> (- (float-time) last-redisplay) 0.4)
+          (let (message-log-max)
+            (message "Scanning for term usage: (%s%%)"
+                     (/ (* 100 (point)) (point-max))))
+          (sit-for 0.01)
+          (setq last-redisplay (float-time)))
         (save-match-data
           (setq element-at-point (org-element-at-point)
                 element-context (org-element-context element-at-point)))
@@ -574,6 +582,8 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                             terms no-modify no-number)
                            :key)
                 terms-used)))))
+    (message "Scanned for term usage in buffer (took %.2f seconds)."
+             (- (float-time) start-time))
     (if keep-unused
         terms
       (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
