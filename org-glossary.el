@@ -107,7 +107,8 @@ to update `org-glossary--heading-names' appropriately."
   "The heading names which correspand to a glossary type.")
 
 (defcustom org-glossary-toplevel-only t
-  "Whether all Glossary/Acronym definition sections must be toplevel."
+  "Whether all glossary definition sections must be toplevel.
+If nil, they will be recognised anywhere in the document."
   :type 'boolean)
 
 (defcustom org-glossary-automatic t
@@ -126,7 +127,11 @@ grouping, and add the target type to the annotation instead."
   :type 'boolean)
 
 (defcustom org-glossary-global-terms nil
-  "A list of globally availible term sources."
+  "A list of globally availible term sources.
+
+Each term should either be a string interpreted as an #+include
+keyword's value, or a plist of the form emitted by
+`org-glossary--parse-include-value'."
   :type '(list (choice string plist)))
 
 (defcustom org-glossary-default-print-parameters
