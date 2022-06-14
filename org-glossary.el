@@ -1439,9 +1439,7 @@ This should only be run as an export hook."
   (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
                                org-glossary--terms))
         current-terms added-terms removed-terms)
-    (setq org-glossary--terms (org-glossary-apply-terms
-                               (org-glossary--get-terms-cached nil t)
-                               t nil t)
+    (setq org-glossary--terms (org-glossary--get-terms-cached nil t)
           org-glossary--term-mrx
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal))
