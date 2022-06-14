@@ -546,13 +546,13 @@ a reference number.
 When KEEP-UNUSED is non-nil, unused terms will be included in the result."
   (interactive (list org-glossary--terms nil t))
   (let ((terms (org-glossary--strip-uses terms))
-        (terms-rx (org-glossary--construct-regexp terms))
+        (terms-mrx (org-glossary--mrx-construct-from-terms terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
         (case-fold-search nil)
         terms-used element-context)
     (save-excursion
       (goto-char (point-min))
-      (while (re-search-forward terms-rx nil t)
+      (while (org-glossary--mrx-search-forward terms-mrx)
         (save-match-data
           (setq element-at-point (org-element-at-point)
                 element-context (org-element-context element-at-point)))
@@ -590,12 +590,61 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
             (org-combine-plists term-entry '(:uses nil)))
           terms))
 
-(defun org-glossary--construct-regexp (terms)
-  "Create a regexp to find all occurances of TERMS.
-The first match group is the non-plural form of the term,
-the second match group indicates plurality, as specified with
-`org-glossary-acronym-plural-suffix'."
-  (let ((terms-collect
+(defvar org-glossary--mrx-last-tag nil
+  "The tag of the last multi-rx matched by `org-glossary--multi-rx'.")
+
+(defun org-glossary--mrx-search-forward (tagged-patterns &optional limit)
+  "Find the closest matching pattern in TAGGED-PATTERNS before LIMIT.
+Each entry in the list TAGGED-PATTERNS should be of the form:
+  (TAG . STRINGS)
+
+In the case of two equally close matches from TAGGED-PATTERNS,
+the longest match will be used.
+
+This is necessitated by problems when trying to apply
+`regexp-opt' to many items, which can trigger:
+  Lisp error: (invalid-regexp \"Regular expression too big\")"
+  (let ((match-start most-positive-fixnum) (match-stop -1)
+        the-match tag)
+    (dolist (t-pat tagged-patterns)
+      (save-excursion
+        (when (and (re-search-forward (cdr t-pat) limit t)
+                   (or (< (match-beginning 0) match-start)
+                       (and (= (match-beginning 0) match-start)
+                            (> (match-end 0) match-stop))))
+          (setq the-match (match-data)
+                match-start (match-beginning 0)
+                match-end (match-end 0)
+                tag (car t-pat)))))
+    (set-match-data the-match)
+    (and the-match
+         (setq org-glossary--mrx-last-tag tag)
+         (goto-char match-end))))
+
+(defvar org-glossary--mrx-max-bin-size 800
+  "The maximum number of strings that should be combined into a single regexp.
+Larger is better, however typically 'invalid-regexp \"Regular
+expression too big\"' is seen with around 1000+ terms.")
+
+(defun org-glossary--mrx-construct (&rest tagged-strings)
+  (let (bins accumulated (n 0))
+    (dolist (tag-strs tagged-strings)
+      (dolist (str (delete-dups (sort (copy-sequence (cdr tag-strs)) #'string<)))
+        (if (< n org-glossary--mrx-max-bin-size)
+            (progn (push str accumulated)
+                   (setq n (1+ n)))
+          (push (cons (car tag-strs) (regexp-opt accumulated 'words)) bins)
+          (setq accumulated nil
+                n 0)))
+      (when accumulated
+        (push (cons (car tag-strs) (regexp-opt accumulated 'words)) bins)
+        (setq accumulated nil
+              n 0)))
+    bins))
+
+(defun org-glossary--mrx-construct-from-terms (terms)
+  "Construct a multi-rx from TERMS."
+  (let ((term-collect
          (lambda (terms key)
            (apply #'nconc
                   (mapcar
@@ -609,11 +658,9 @@ the second match group indicates plurality, as specified with
                            (list term-str (concat (string (upcase term-letter1))
                                                   (substring term-str 1)))))))
                    terms)))))
-    (concat "\\<"
-            (regexp-opt (funcall terms-collect terms :key-plural) t)
-            "\\|"
-            (regexp-opt (funcall terms-collect terms :key) t)
-            "\\>")))
+    (org-glossary--mrx-construct
+     (cons 'singular (funcall term-collect terms :key))
+     (cons 'plural (funcall term-collect terms :key-plural)))))
 
 (defun org-glossary--within-definition-p (datum)
   "Whether DATUM exists within a term definition subtree."
@@ -674,9 +721,8 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
   (let ((term-str
          (replace-regexp-in-string
           "[ \n\t]+" " "
-          (substring-no-properties
-           (or (match-string 1) (match-string 2)))))
-        (plural-p (match-string 1))
+          (substring-no-properties (match-string 0))))
+        (plural-p (eq org-glossary--mrx-last-tag 'plural))
         (case-fold-search nil)
         capitalized-p term-entry)
     (setq term-entry
@@ -1211,13 +1257,18 @@ This should only be run as an export hook."
         org-glossary--current-export-spec
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
-  (let ((index-terms-rx (format "^[ \t]*#\\+[cfkptv]?index:[ \t]*\\(%s\\)$"
-                                (org-glossary--construct-regexp
-                                 org-glossary--terms))))
+  (let ((index-terms-mrx (org-glossary--mrx-construct-from-terms
+                          (cl-remove-if
+                           (lambda (trm)
+                             (not (eq (plist-get trm :type) 'index)))
+                           terms))))
     (save-excursion
       (goto-char (point-min))
-      (while (re-search-forward index-terms-rx nil t)
-        (replace-match "[[gls:\\1][org-glossary-index-stub]]"))))
+      (while (org-glossary--mrx-search-forward index-terms-mrx)
+        (when (save-match-data
+                (looking-back "^[ \t]*#\\+[cfkptv]?index:[ \t]*"
+                              (line-beginning-position)))
+          (replace-match "[[gls:\\1][org-glossary-index-stub]]")))))
   (let ((used-terms (org-glossary-apply-terms org-glossary--terms))
         keyword print-glossary-p)
     (save-excursion
@@ -1238,8 +1289,8 @@ This should only be run as an export hook."
 
 ;;; Fontification
 
-(defvar-local org-glossary--term-regexp nil
-  "A regexp matching all known forms of terms.")
+(defvar-local org-glossary--term-mrx nil
+  "A multi-rx matching all known forms of terms.")
 
 (defvar-local org-glossary--font-lock-keywords
   '((org-glossary--fontify-find-next
@@ -1278,7 +1329,8 @@ This should only be run as an export hook."
   "Find any next occurance of a term reference, for fontification."
   (let (match-p exit element-at-point element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
-      (setq exit (null (re-search-forward org-glossary--term-regexp limit t)))
+      (setq exit (null (org-glossary--mrx-search-forward
+                        org-glossary--term-mrx limit)))
       (save-match-data
         (setq element-at-point (org-element-at-point)
               element-context (org-element-context element-at-point))
@@ -1380,8 +1432,8 @@ This should only be run as an export hook."
     (setq org-glossary--terms (org-glossary-apply-terms
                                (org-glossary--get-terms-cached nil t)
                                t nil t)
-          org-glossary--term-regexp (org-glossary--construct-regexp
-                                     org-glossary--terms)
+          org-glossary--term-mrx
+          (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal))
     (setq current-terms (mapcar (lambda (trm) (plist-get trm :term))
                                 org-glossary--terms)
