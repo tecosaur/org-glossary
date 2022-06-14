@@ -84,29 +84,27 @@
   :group 'org
   :prefix "org-glossary-")
 
-(defcustom org-glossary-section "Glossary"
-  "Outline heading containing term and acronym definitions.
+(defcustom org-glossary-headings
+  '(("Glossary" . glossary)
+    ("Acronyms" . acronym)
+    ("Index" . index)
+    ("Text Substitutions" . substitution))
+  "An alist of special heading names and their correspanding type.
+During export, all matching headings will be removed in their
+entirity (including subtrees).
 
-During export, all subtrees starting with this heading will be removed."
-  :type 'string)
+If setting this outside of the customisation interface, be sure
+to update `org-glossary--heading-names' appropriately."
+  :type '(alist :key-type (string :tag "Heading title")
+                :value-type (symbol :tag "Entry type"))
+  :set (lambda (symbol value)
+         (setq org-glossary--heading-names
+               (mapcar #'car value))
+         (set-default symbol value)))
 
-(defcustom org-glossary-acronym-section "Acronyms"
-  "Outline heading containing term and acronym definitions.
-
-During export, all subtrees starting with this heading will be removed."
-  :type 'string)
-
-(defcustom org-glossary-index-section "Index"
-  "Outline heading containing a list of terms to be indexed.
-
-During export, all subtrees starting with this heading will be removed."
-  :type 'string)
-
-(defcustom org-glossary-substitution-section "Text Substitutions"
-  "Outline heading containing text substitution definitions.
-
-During export, all subtrees starting with this heading will be removed."
-  :type 'string)
+(defvar org-glossary--heading-names
+  (mapcar #'car org-glossary-headings)
+  "The heading names which correspand to a glossary type.")
 
 (defcustom org-glossary-toplevel-only t
   "Whether all Glossary/Acronym definition sections must be toplevel."
@@ -115,10 +113,6 @@ During export, all subtrees starting with this heading will be removed."
 (defcustom org-glossary-automatic t
   "Pick up on terms in plain text."
   :type 'boolean)
-
-(defcustom org-glossary-acronym-plural-suffix "s"
-  "The usual plural suffix, applied to acronyms."
-  :type 'string)
 
 (defcustom org-glossary-plural-function #'org-glossary-english-plural
   "A function which generates the plural form of a word."
@@ -135,6 +129,15 @@ grouping, and add the target type to the annotation instead."
   "A list of globally availible term sources."
   :type '(list (choice string plist)))
 
+(defcustom org-glossary-default-print-parameters
+  '(:type (glossary acronym index)
+    :level 0
+    :consume nil
+    :only-contents nil)
+  "The default print parameters.
+These can be set by #+print_glossary in babel :key value style."
+  :type 'plist)
+
 (defcustom org-glossary-export-specs
   '((t (t :use "%t"
           :first-use "%u"
@@ -147,7 +150,11 @@ grouping, and add the target type to the annotation instead."
        (acronym :heading "Acronyms"
                 :first-use "%v (%u)")
        (index :heading "Index"
-              :definition-structure "%d\\ensp{}%b\n"))
+              :definition-structure "%d\\ensp{}%b\n")
+       (substitution :heading ""
+                     :use "%v"
+                     :definition-structure ""
+                     :letter-separator ""))
     (latex (t :use "\\hyperlink{gls-%k}{\\label{gls-%k-use-%r}%t}"
               :definition "\\hypertarget{gls-%k}{%t}"
               :backref "\\pageref{gls-%k-use-%r}"))
@@ -217,6 +224,17 @@ TODO rewrite for clarity."
 Or just use the org-glossary-term face for everything."
   :type 'boolean)
 
+(defcustom org-glossary-fontify-type-faces
+  '((glossary . org-glossary-glossary-term)
+    (acronym . org-glossary-acronym-term)
+    (index . org-glossary-index-term)
+    (substitute . org-glossary-substitution-term))
+  "An alist of types and the faces that should be used.
+This only applies when `org-glossary-fontify-types-differently'
+is non-nil."
+  :type '(alist :key-type (symbol :tag "Type")
+                :value-type face))
+
 (defcustom org-glossary-display-substitute-value t
   "Whether to display substitutions as their value.
 Requires `org-glossary-fontify-types-differently' to be non-nil."
@@ -235,7 +253,7 @@ Requires `org-glossary-fontify-types-differently' to be non-nil."
   "Face used for term references.")
 
 (defface org-glossary-index-term
-  '((t :inherit (org-scheduled-previously org-glossary-term) :weight normal))
+  '((t :inherit (org-scheduled-previously org-glossary-term)))
   "Face used for term references.")
 
 (defface org-glossary-substitution-term
@@ -465,10 +483,7 @@ side-effect when it is provided."
                'headline
              (lambda (heading)
                (and (member (org-element-property :raw-value heading)
-                            (list org-glossary-section
-                                  org-glossary-acronym-section
-                                  org-glossary-index-section
-                                  org-glossary-substitution-section))
+                            org-glossary--heading-names)
                     (apply #'nconc
                            (org-element-map
                                (org-element-contents heading)
@@ -500,15 +515,14 @@ side-effect when it is provided."
                          (funcall org-glossary-plural-function key)))
          (type (org-glossary--entry-type
                 (org-element-lineage item '(headline))))
-         (value (pcase type
-                  ('acronym
-                   (org-element-contents
-                    (org-element-extract-element
-                     (car (org-element-contents item)))))
-                  ('index nil)
-                  (_ (mapcar
-                      #'org-element-extract-element
-                      (org-element-contents item))))))
+         (item-contents (and (org-element-property :tag item)
+                             (org-element-contents item)))
+         (value (mapcar
+                 #'org-element-extract-element
+                 (if (and (= (length item-contents) 1)
+                          (eq (caar item-contents) 'paragraph))
+                     (org-element-contents (car item-contents))
+                   item-contents))))
     (list :key key
           :key-plural key-plural
           :term term
@@ -523,15 +537,9 @@ side-effect when it is provided."
   "Determine whether DATUM is a glossary or acronym entry."
   (unless (or (null datum) (eq 'org-data (org-element-type datum)))
     (or (and (eq 'headline (org-element-type datum))
-             (let ((rawval (org-element-property :raw-value datum)))
-               (cond ((string= rawval org-glossary-section)
-                      'glossary)
-                     ((string= rawval org-glossary-acronym-section)
-                      'acronym)
-                     ((string= rawval org-glossary-index-section)
-                      'index)
-                     ((string= rawval org-glossary-substitution-section)
-                      'substitution))))
+             (alist-get (org-element-property :raw-value datum)
+                        org-glossary-headings
+                        nil nil #'string=))
         (org-glossary--entry-type (org-element-lineage datum '(headline))))))
 
 ;;; Term usage
@@ -684,10 +692,7 @@ expression too big\"' is seen with around 1000+ terms.")
 (defun org-glossary--definition-heading-p (heading)
   "Whether HEADING is recognised as a definition heading."
   (and (member (org-element-property :raw-value heading)
-               (list org-glossary-section
-                     org-glossary-acronym-section
-                     org-glossary-index-section
-                     org-glossary-substitution-section))
+               org-glossary--heading-names)
        (or (= 1 (org-element-property :level heading))
            (not org-glossary-toplevel-only))))
 
@@ -779,28 +784,18 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
 
 (defun org-glossary--term-replacement (term-entry &optional index plural-p capitalized-p)
   "Construct a string refering to the TERM-ENTRY"
-  (pcase (plist-get term-entry :type)
-    ((or 'glossary 'acronym 'index)
-     (org-element-interpret-data
-      `(link
-        (:type ,(cond
-                 ((and plural-p capitalized-p) "Glspl")
-                 (capitalized-p "Gls")
-                 (plural-p "glspl")
-                 (t "gls"))
-         :path ,(if index
-                    (concat (number-to-string index)
-                            ":" (plist-get term-entry :key))
-                  (plist-get term-entry :key))
-         :format bracket))))
-    ('substitution
-     (let ((text (string-trim
-                  (save-match-data (org-element-interpret-data
-                                    (plist-get term-entry :value))))))
-       (concat (when capitalized-p (string (upcase (aref text 0))))
-               (if capitalized-p (substring text 1) text)
-               (when plural-p org-glossary-acronym-plural-suffix))))
-    (_ (match-string 0))))
+  (org-element-interpret-data
+   `(link
+     (:type ,(cond
+              ((and plural-p capitalized-p) "Glspl")
+              (capitalized-p "Gls")
+              (plural-p "glspl")
+              (t "gls"))
+      :path ,(if index
+                 (concat (number-to-string index)
+                         ":" (plist-get term-entry :key))
+               (plist-get term-entry :key))
+      :format bracket))))
 
 ;;; Export, general functionality
 
@@ -829,7 +824,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
               (cons type template)))))
     (cons (cons t default-template)
           (mapcar complete-template
-                  '(glossary acronym index substitutions)))))
+                  (mapcar #'cdr org-glossary-headings)))))
 
 (defun org-glossary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
   "Export the FORM of TERM-ENTRY according to `org-glossary--current-export-spec'.
@@ -899,7 +894,7 @@ optional arguments:
 
 (defun org-glossary--print-terms (backend terms &optional types level keep-unused)
   "Produce an org-mode AST defining TERMS for BACKEND.
-Do this for each of TYPES (by default: glossary, acronym, and index),
+Do this for each of TYPES (by default: `org-glossary-default-print-parameters''s :type),
 producing a heading of level LEVEL (by default: 1). If LEVEL is set to 0,
 no heading is produced.
 Unless keep-unused is non-nil, only used terms will be included."
@@ -907,7 +902,7 @@ Unless keep-unused is non-nil, only used terms will be included."
          (org-glossary--group-terms
           (org-glossary--sort-plist terms :key #'string<)
           (lambda (trm) (plist-get trm :type))
-          (or types '(glossary acronym index))))
+          (or types (plist-get org-glossary-default-print-parameters :type))))
         (level (or level 1))
         export-spec content)
     (mapconcat
@@ -1079,7 +1074,7 @@ BACKEND is passed through unmodified, but TERMS may be modified depending on
 the :consume parameter extracted from KEYWORD."
   (let ((heading (org-element-lineage keyword '(headline org-data)))
         (parameters (org-combine-plists
-                     org-glossary--default-print-keyword-parameters
+                     org-glossary-default-print-parameters
                      (org-glossary--parse-print-keyword-value
                       (org-element-property :value keyword)))))
     (while (and (not (eq (org-element-type heading) 'org-data))
@@ -1113,13 +1108,6 @@ the :consume parameter extracted from KEYWORD."
          (_ (cdr pair)))
        res))
     (nreverse res)))
-
-(defvar org-glossary--default-print-keyword-parameters
-  '(:type (glossary acronym index)
-    :level 0
-    :consume nil
-    :only-contents nil)
-  "The default #+print_glossary parameters.")
 
 ;;; Link definitions
 
@@ -1200,9 +1188,11 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 
 (defun org-glossary-english-plural (word)
   "Generate the plural form of WORD."
-  (or (let ((plural (alist-get (downcase word)
-                               org-glossary-english-plural-exceptions
-                               nil nil #'string=))
+  (or (let ((plural
+             (alist-get (if (string-match-p "^[[:upper]]+$" word)
+                            (downcase word) word)
+                        org-glossary-english-plural-exceptions
+                        nil nil #'string=))
             case-fold-search)
         (when plural
           (cond
@@ -1210,7 +1200,11 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
            ((string-match-p "^[[:upper:]][[:lower:]]+$" word)
             (capitalize plural))
            ((string-match-p "^[[:upper:]]+$" word) (upcase plural)))))
-      (cond ; Source: https://github.com/plurals/pluralize/blob/master/pluralize.js#L334
+      ;; Source: https://github.com/plurals/pluralize/blob/master/pluralize.js#L334
+      (cond
+       ((let (case-fold-search) ; Acronyms shouldn't be treated as words.
+          (string-match-p "^[[:upper:]]+$" word))
+        (concat word "s"))
        ((string-match "m[ae]n$" word)
         (replace-match "men" nil t word))
        ((string-match-p "eaux$" word) word)
@@ -1368,9 +1362,6 @@ This should only be run as an export hook."
      (match-beginning 0) (match-end 0)
      (nconc
       (pcase (plist-get term-entry :type)
-        ('glossary '(face org-glossary-glossary-term))
-        ('acronym '(face org-glossary-acronym-term))
-        ('index '(face org-glossary-index-term))
         ('substitution
          (if org-glossary-display-substitute-value
              `(face org-glossary-substituted-value
@@ -1380,7 +1371,9 @@ This should only be run as an export hook."
                       (substring-no-properties
                        (org-element-interpret-data
                         (plist-get term-entry :value)))))
-           '(face org-glossary-substitution-term))))
+           '(face org-glossary-substitution-term)))
+        (type `(face ,(or (alist-get type org-glossary-fontify-type-faces)
+                          'org-glossary-term))))
       `(help-echo
         org-glossary--term-help-echo
         keymap (keymap
