@@ -911,7 +911,8 @@ Unless keep-unused is non-nil, only used terms will be included."
              content (org-glossary--print-terms-by-letter
                       backend (car type-terms) (cdr type-terms)))
        (and (not (string-empty-p content))
-            (if (> level 0)
+            (if (and (not (string-empty-p (plist-get export-spec :heading)))
+                     (> level 0))
                 (concat
                  (make-string level ?*)
                  " "
