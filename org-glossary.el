@@ -52,6 +52,8 @@
 ;;
 ;; TODO support named indicies/index sections
 ;;
+;; TODO support for term aliases
+;;
 ;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
