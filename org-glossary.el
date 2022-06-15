@@ -150,6 +150,7 @@ These can be set by #+print_glossary in babel :key value style."
           :backref "%r"
           :definition-structure-preamble ""
           :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
+          :category-heading "* %c\n"
           :letter-separator "*%L*\n")
        (glossary :heading "Glossary")
        (acronym :heading "Acronyms"
@@ -198,19 +199,22 @@ Within each template, the following format specs are applied:
   %k the term key
   %r the term reference index (applicable to :use, :first-use, and :backref)
   %n the number of term references (i.e. max %r)
+  %c the category of the term
 
 In :use and :first-use, %t/%v are pluralised and capitalised as
 appropriate. The :first-use template can also use %u to refer to
 the value of :use.
 
-The default backend defines two special forms, expanded at the
-start of the export process.
+The default backend defines three special forms, expanded at the
+start of the export process:
 - The :definition-structure form is used as the template for the
   whole definition entry, and uses the format specs %d, %v, %b
   for the definition term, value, and backreferences respectively.
 - The :letter-separator form is inserted before a block of terms
   starting with the letter, given by the format spec %l and %L in
   lower and upper case respectively.
+- The :category-heading form is inserted before a block of terms
+  all assigned a particular category, given by the format spec %c.
 
 The literal content of :definition-structure-preamble is inserted
 before the first :definition-structure in each block of
@@ -518,8 +522,8 @@ side-effect when it is provided."
          (key (car key-and-plural))
          (key-plural (or (cadr key-and-plural)
                          (funcall org-glossary-plural-function key)))
-         (type (org-glossary--entry-type
-                (org-element-lineage item '(headline))))
+         (type-category (org-glossary--entry-type-category
+                         (org-element-lineage item '(headline))))
          (item-contents (and (org-element-property :tag item)
                              (org-element-contents item)))
          (value (mapcar
@@ -532,20 +536,35 @@ side-effect when it is provided."
           :key-plural key-plural
           :term term
           :term-plural plural
-          :type type
+          :type (car type-category)
+          :category (cdr type-category)
           :value value
           :definition-file (or (buffer-file-name) (current-buffer))
           :definition-pos (+ (org-element-property :begin item) 2)
           :uses nil)))
 
-(defun org-glossary--entry-type (datum)
+(defun org-glossary--entry-type-category (datum)
   "Determine whether DATUM is a glossary or acronym entry."
-  (unless (or (null datum) (eq 'org-data (org-element-type datum)))
-    (or (and (eq 'headline (org-element-type datum))
-             (alist-get (org-element-property :raw-value datum)
-                        org-glossary-headings
-                        nil nil #'string=))
-        (org-glossary--entry-type (org-element-lineage datum '(headline))))))
+  (cond
+   ((null datum) nil)
+   ((eq (org-element-type datum) 'org-data) nil)
+   ((eq (org-element-type datum) 'headline)
+    (let* ((full-title (org-element-property :raw-value datum))
+           (type (alist-get full-title org-glossary-headings
+                            nil nil #'string=))
+           (recurse (unless type (org-glossary--entry-type-category
+                                  (org-element-lineage datum '(headline)))))
+           case-fold-search)
+      (cond
+       (type (cons type nil))
+       ((string-match org-glossary--category-heading-regexp full-title)
+        (cons (car recurse) (match-string 1 full-title)))
+       (t recurse))))
+   (t (org-glossary--entry-type-category (org-element-lineage datum '(headline))))))
+
+(defvar org-glossary--category-heading-regexp "^CATEGORY \\(.+\\)"
+  "A regexp that matches a categorisation heading, and captures the name.
+This is applied with `case-fold-search' set to nil.")
 
 ;;; Term usage
 
@@ -887,6 +906,9 @@ optional arguments:
       (push (cons ?n (number-to-string
                       (length (plist-get term-entry :uses))))
             parameters))
+    (when (string-match-p "%c" template)
+      (push (cons ?c (plist-get term-entry :category))
+            parameters))
     (when (string-match-p "%u" template)
       (push (cons ?u (org-glossary--export-instance
                       backend info term-entry :use
@@ -913,20 +935,46 @@ Unless keep-unused is non-nil, only used terms will be included."
     (mapconcat
      (lambda (type-terms)
        (setq export-spec (alist-get (car type-terms) org-glossary--current-export-spec)
-             content (org-glossary--print-terms-by-letter
-                      backend (car type-terms) (cdr type-terms)))
-       (and (not (string-empty-p content))
-            (if (and (not (string-empty-p (plist-get export-spec :heading)))
-                     (> level 0))
-                (concat
-                 (make-string level ?*)
-                 " "
-                 (plist-get export-spec :heading)
-                 "\n"
-                 content)
-              content)))
+             content (org-glossary--print-terms-by-category
+                      backend (car type-terms) (cdr type-terms) level))
+       (if (and (not (string-empty-p (plist-get export-spec :heading)))
+                (> level 0))
+           (concat
+            (make-string level ?*)
+            " "
+            (plist-get export-spec :heading)
+            "\n"
+            content)
+         content))
      terms-by-type
      "\n")))
+
+(defun org-glossary--print-terms-by-category (backend type terms level)
+  "Produce a string printing TERMS for TYPE in BACKEND split by category."
+  (let ((terms-by-category
+         (org-glossary--group-terms
+          (org-glossary--sort-plist terms :key #'string<)
+          (lambda (trm) (plist-get trm :category))))
+        (export-spec (alist-get type org-glossary--current-export-spec))
+        content cat-heading)
+    (if (= (length terms-by-category) 1)
+        (org-glossary--print-terms-by-letter backend type terms)
+      (mapconcat
+       (lambda (cat-terms)
+         (setq content (org-glossary--print-terms-by-letter
+                        backend type (cdr cat-terms))
+               cat-heading (org-glossary--export-instance
+                            backend nil (cadr cat-terms) :category-heading))
+         (if (not (string-empty-p (plist-get export-spec :category-heading)))
+             (concat
+              (if (string-match-p "^\\* " cat-heading)
+                  (concat (make-string level ?*) cat-heading)
+                cat-heading)
+              "\n"
+              content)
+           content))
+       terms-by-category
+       "\n"))))
 
 (defun org-glossary--print-terms-by-letter (backend type terms)
   "Produce an org-mode AST for TYPE in BACKEND defining ASSEMBLED-TERMS."
