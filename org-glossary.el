@@ -541,6 +541,7 @@ side-effect when it is provided."
           :value value
           :definition-file (or (buffer-file-name) (current-buffer))
           :definition-pos (+ (org-element-property :begin item) 2)
+          :extracted nil
           :uses nil)))
 
 (defun org-glossary--entry-type-category (datum)
@@ -920,15 +921,21 @@ optional arguments:
 
 ;;; Export used term definitions
 
-(defun org-glossary--print-terms (backend terms &optional types level keep-unused)
+(defun org-glossary--print-terms (backend terms &optional types level duplicate-mentions)
   "Produce an org-mode AST defining TERMS for BACKEND.
 Do this for each of TYPES (by default: `org-glossary-default-print-parameters''s :type),
 producing a heading of level LEVEL (by default: 1). If LEVEL is set to 0,
 no heading is produced.
-Unless keep-unused is non-nil, only used terms will be included."
+Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (let ((terms-by-type
          (org-glossary--group-terms
-          (org-glossary--sort-plist terms :key #'string<)
+          (org-glossary--sort-plist
+           (if duplicate-mentions
+               terms
+             (cl-remove-if
+              (lambda (trm) (plist-get trm :extracted))
+              terms))
+           :key #'string<)
           (lambda (trm) (plist-get trm :type))
           (or types (plist-get org-glossary-default-print-parameters :type))))
         (level (or level 1))
@@ -1086,33 +1093,28 @@ Unless keep-unused is non-nil, only used terms will be included."
      regions-to-delete)
     data))
 
-(defun org-glossary--extract-uses-in-region (terms begin end &optional types remove)
+(defun org-glossary--extract-uses-in-region (terms begin end &optional types mark-extracted)
   "Extract uses of TERMS that occur between BEGIN and END.
 If TYPES is non-nil, the extracted entries shall be restricted instances of TYPES.
-If REMOVE is non-nil, extracted uses shall be destructively removed from TERMS."
-  (let (region-terms)
+If MARK-EXTRACTED is non-nil, extracted uses shall be marked as extracted."
+  (let (region-terms region-term-uses)
     (mapc
      (lambda (term-entry)
        (when (or (not types)
                  (memq (plist-get term-entry :type) types))
-         (let ((remaining-uses (cons nil (plist-get term-entry :uses)))
-               region-term-uses)
-           (while (cdr remaining-uses)
-             (if (and (<= begin
+         (setq region-term-uses nil)
+         (dolist (use (plist-get term-entry :uses))
+           (when (and (<= begin
                           (org-element-property :begin (cdadr remaining-uses))
                           (org-element-property :end (cdadr remaining-uses))
                           end)
-                      (push (cadr remaining-uses) region-term-uses)
-                      remove)
-                 (progn
-                   (setcdr remaining-uses (cddr remaining-uses))
-                   (unless (car remaining-uses) ; When removing the first element.
-                     (plist-put term-entry :uses (cdr remaining-uses))))
-               (setq remaining-uses (cdr remaining-uses))))
-           (when region-term-uses
-             (push (org-combine-plists
-                    term-entry (list :uses region-term-uses))
-                   region-terms)))))
+                      (push use region-term-uses)
+                      mark-extracted)
+             (plist-put use :extracted t)))
+         (when region-term-uses
+           (push (org-combine-plists
+                  term-entry (list :uses region-term-uses))
+                 region-terms))))
      terms)
     (nreverse region-terms)))
 
