@@ -533,9 +533,9 @@ side-effect when it is provided."
                      (org-element-contents (car item-contents))
                    item-contents))))
     (list :key key
-          :key-plural key-plural
+          :key-plural (unless (string-empty-p key-plural) key-plural)
           :term term
-          :term-plural plural
+          :term-plural (unless (string-empty-p plural) plural)
           :type (car type-category)
           :category (cdr type-category)
           :value value
@@ -693,8 +693,8 @@ expression too big\"' is seen with around 1000+ terms.")
                    (lambda (trm)
                      (if (eq 'acronym (plist-get trm :type))
                          (list (plist-get trm key))
-                       (let* ((term-str (plist-get trm key))
-                              (term-letter1 (aref term-str 0)))
+                       (when-let ((term-str (plist-get trm key))
+                                  (term-letter1 (aref term-str 0)))
                          (if (eq term-letter1 (upcase term-letter1))
                              (list term-str)
                            (list term-str (concat (string (upcase term-letter1))
