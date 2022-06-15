@@ -549,22 +549,22 @@ side-effect when it is provided."
    ((null datum) nil)
    ((eq (org-element-type datum) 'org-data) nil)
    ((eq (org-element-type datum) 'headline)
-    (let* ((full-title (org-element-property :raw-value datum))
-           (type (alist-get full-title org-glossary-headings
+    (let* ((title (org-element-property :raw-value datum))
+           (type (alist-get title org-glossary-headings
                             nil nil #'string=))
            (recurse (unless type (org-glossary--entry-type-category
                                   (org-element-lineage datum '(headline)))))
            case-fold-search)
       (cond
        (type (cons type nil))
-       ((string-match org-glossary--category-heading-regexp full-title)
-        (cons (car recurse) (match-string 1 full-title)))
+       ((member org-glossary--category-heading-tag
+                (org-element-property :tags datum))
+        (cons (car recurse) title))
        (t recurse))))
    (t (org-glossary--entry-type-category (org-element-lineage datum '(headline))))))
 
-(defvar org-glossary--category-heading-regexp "^CATEGORY \\(.+\\)"
-  "A regexp that matches a categorisation heading, and captures the name.
-This is applied with `case-fold-search' set to nil.")
+(defvar org-glossary--category-heading-tag "category"
+  "The tag signifying that the heading correspands to a category of terms.")
 
 ;;; Term usage
 
