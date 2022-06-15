@@ -868,6 +868,7 @@ relevant template."
      ((functionp template)
       (funcall template backend info term-entry form
                ref-index plural-p capitalized-p extra-parameters))
+     ((not template) "")
      (t "ORG-GLOSSARY-EXPORT-INVALID-SPEC"))))
 
 (defun org-glossary--export-template (template backend info term-entry &optional ref-index plural-p capitalized-p extra-parameters)
