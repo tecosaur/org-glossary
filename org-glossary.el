@@ -100,7 +100,7 @@ to update `org-glossary--heading-names' appropriately."
   :set (lambda (symbol value)
          (setq org-glossary--heading-names
                (mapcar #'car value))
-         (set-default symbol value)))
+         (set-default-toplevel-value symbol value)))
 
 (defvar org-glossary--heading-names
   (mapcar #'car org-glossary-headings)
