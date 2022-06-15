@@ -1540,8 +1540,8 @@ This should only be run as an export hook."
   (propertize
    (concat
     (plist-get term-entry :term)
-    (make-string (max 0 (- 18 (length(plist-get term-entry :term) ))) ?\s)
-    "\u200b")
+    "\u200b"
+    (make-string (max 0 (- 18 (length(plist-get term-entry :term) ))) ?\s))
    'face 'font-lock-keyword-face
    'org-glossary--term term-entry))
 
@@ -1579,10 +1579,12 @@ If TERM-REF is not given, the current point will be used."
               (or (org-glossary--quicklookup
                    (or (and (stringp term-ref) term-ref)
                        (buffer-substring-no-properties
-                        (previous-single-property-change
-                         (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
-                        (next-single-property-change
-                         (or (and (numberp term-ref) term-ref) (point)) 'face))))
+                        (or (previous-single-property-change
+                             (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
+                            (point-min))
+                        (or (next-single-property-change
+                             (or (and (numberp term-ref) term-ref) (point)) 'face)
+                            (point-max)))))
                   (org-glossary--select-term org-glossary--terms))))
     (let ((def-file (plist-get term-entry :definition-file)))
       (if (bufferp def-file)
