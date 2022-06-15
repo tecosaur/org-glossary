@@ -138,6 +138,7 @@ keyword's value, or a plist of the form emitted by
   '(:type (glossary acronym index)
     :level 0
     :consume nil
+    :all nil
     :only-contents nil)
   "The default print parameters.
 These can be set by #+print_glossary in babel :key value style."
@@ -1125,7 +1126,8 @@ If MARK-EXTRACTED is non-nil, extracted uses shall be marked as extracted."
    (plist-get parameters :types)
    (if (plist-get parameters :only-contents)
        0
-     (1+ (plist-get parameters :level)))))
+     (1+ (plist-get parameters :level)))
+   (plist-get parameters :all)))
 
 (defun org-glossary--expand-print-keyword (backend terms keyword)
   "Call `org-glossary--expand-print' with paramaters and terms based on KEYWORD.
@@ -1158,12 +1160,10 @@ the :consume parameter extracted from KEYWORD."
       (push
        (pcase (car pair)
          (:type (mapcar #'intern (split-string (cdr pair))))
-         (:consume (and (stringp (cdr pair))
-                        (or (string= "t" (cdr pair))
-                            (string= "yes" (cdr pair)))))
-         (:only-contents (and (stringp (cdr pair))
-                              (or (string= "t" (cdr pair))
-                                  (string= "yes" (cdr pair)))))
+         ((or :consume :only-contents :all)
+          (and (stringp (cdr pair))
+               (or (string= "t" (cdr pair))
+                   (string= "yes" (cdr pair)))))
          (_ (cdr pair)))
        res))
     (nreverse res)))
