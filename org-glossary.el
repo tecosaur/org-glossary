@@ -1301,7 +1301,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
        ((string-match "\\(i\\|l\\)um$" word) ; added
         (replace-match "\\1a" nil nil word))
        ((string-match "\\(alias\\|[^aou]us\\|t[lm]as\\|gas\\|ris\\)$" word)
-        (replace-match "\1es" nil nil word))
+        (replace-match "\\1es" nil nil word))
        ((string-match "\\(ax\\|test\\)is$" word)
         (replace-match "\\1es" nil nil word))
        ((string-match "enon$" word)
