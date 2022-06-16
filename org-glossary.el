@@ -52,7 +52,7 @@
 ;;
 ;; TODO support named indicies/index sections
 ;;
-;; TODO support for term aliases
+;; DONE support for term aliases
 ;;
 ;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
@@ -326,7 +326,8 @@ is non-nil and INCLUDE-GLOBAL nil."
                 (org-element-parse-buffer))))))
     (list :path path-spec
           :scan-time (current-time)
-          :terms (org-glossary--extract-terms parse-tree)
+          :terms (org-glossary--identify-alias-terms
+                  (org-glossary--extract-terms parse-tree))
           :included
           (mapcar
            #'org-glossary--parse-include-value
@@ -539,6 +540,7 @@ side-effect when it is provided."
           :key-plural (unless (string-empty-p key-plural) key-plural)
           :term term
           :term-plural (unless (string-empty-p plural) plural)
+          :alias-for nil
           :type (car type-category)
           :category (cdr type-category)
           :value value
@@ -570,6 +572,20 @@ side-effect when it is provided."
 (defvar org-glossary--category-heading-tag "category"
   "The tag signifying that the heading correspands to a category of terms.")
 
+(defun org-glossary--identify-alias-terms (terms)
+  "Search for aliases in TERMS, and update term entries accordingly."
+  (let ((key-term-map (make-hash-table :test #'equal :size (length terms)))
+        value-str)
+    (dolist (term-entry terms)
+      (puthash (plist-get term-entry :key) term-entry key-term-map))
+    (dolist (term-entry terms)
+      (when-let ((value (plist-get term-entry :value))
+                 (value-str (string-trim (org-element-interpret-data value)))
+                 (associated-term (gethash value-str key-term-map)))
+        (plist-put term-entry :alias-for associated-term)
+        (plist-put term-entry :value (plist-get associated-term :value)))))
+  terms)
+
 ;;; Term usage
 
 (defun org-glossary-apply-terms (terms &optional no-modify no-number keep-unused)
@@ -581,13 +597,14 @@ When NO-NUMBER is non-nil, all links created or modified shall not include
 a reference number.
 When KEEP-UNUSED is non-nil, unused terms will be included in the result."
   (interactive (list org-glossary--terms nil t))
-  (let ((terms (org-glossary--strip-uses terms))
-        (terms-mrx (org-glossary--mrx-construct-from-terms terms))
+  (let ((terms-mrx (org-glossary--mrx-construct-from-terms terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
         (case-fold-search nil)
         (start-time (float-time))
         (last-redisplay (float-time))
         terms-used element-context)
+    (dolist (term-entry terms)
+      (plist-put term-entry :uses nil))
     (save-excursion
       (goto-char (point-min))
       (while (org-glossary--mrx-search-forward terms-mrx)
@@ -629,12 +646,6 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                (when (member (plist-get trm :key) terms-used)
                  trm))
              terms)))))
-
-(defun org-glossary--strip-uses (terms)
-  "Record a copy of TERMS with :uses set to nil."
-  (mapcar (lambda (term-entry)
-            (org-combine-plists term-entry '(:uses nil)))
-          terms))
 
 (defvar org-glossary--mrx-last-tag nil
   "The tag of the last multi-rx matched by `org-glossary--multi-rx'.")
@@ -786,7 +797,9 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
          (org-glossary--term-replacement
           term-entry
           (unless no-number
-            (1+ (length (plist-get term-entry :uses))))
+            (1+ (length (plist-get
+                         (or (plist-get term-entry :alias-for) term-entry)
+                         :uses))))
           plural-p capitalized-p)
          t t))
       (org-glossary--record-term-usage term-entry (org-element-context))
@@ -801,9 +814,11 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
 
 (defun org-glossary--record-term-usage (term-entry record)
   "Record TERM-ENTRY's usage with RECORD, and give the use index."
-  (let* ((uses (plist-get term-entry :uses))
-         (index (1+ (length uses))))
-    (plist-put term-entry :uses (nconc uses (list (cons index record))))
+  (let* ((canonical-term (or (plist-get term-entry :alias-for) term-entry))
+         (uses (plist-get canonical-term :uses))
+         (index (1+ (or (caar uses) 0))))
+    ;; (plist-put canonical-term :uses (nconc (list (cons index record)) uses))
+    (push (cons index record) (plist-get canonical-term :uses))
     index))
 
 (defun org-glossary--clear-term-usage (term-entry)
@@ -882,9 +897,10 @@ optional arguments:
  - REF-INDEX provides %r
  - PLURAL-P and CAPITALIZED-P affect %t and %v
  - EXTRA-PARAMETERS defines additional fields"
-  (let ((parameters extra-parameters))
+  (let ((parameters extra-parameters)
+        (canonical-term (or (plist-get term-entry :alias-for) term-entry)))
     (when (string-match-p "%k" template)
-      (push (cons ?k (plist-get term-entry :key)) parameters))
+      (push (cons ?k (plist-get canonical-term :key)) parameters))
     (when (string-match-p "%t" template)
       (push (cons ?t (funcall (if capitalized-p #'capitalize #'identity)
                               (plist-get term-entry
@@ -894,7 +910,7 @@ optional arguments:
                (string-match-p "%v" template))
       (push (cons ?v
                   (let ((value-str
-                         (org-export-data (plist-get term-entry :value) info)))
+                         (org-export-data (plist-get canonical-term :value) info)))
                     (funcall (if capitalized-p #'capitalize #'identity)
                              (if plural-p
                                  (let ((components (split-string value-str)))
@@ -909,10 +925,10 @@ optional arguments:
             parameters))
     (when (string-match-p "%n" template)
       (push (cons ?n (number-to-string
-                      (length (plist-get term-entry :uses))))
+                      (length (plist-get canonical-term :uses))))
             parameters))
     (when (string-match-p "%c" template)
-      (push (cons ?c (plist-get term-entry :category))
+      (push (cons ?c (plist-get canonical-term :category))
             parameters))
     (when (string-match-p "%u" template)
       (push (cons ?u (org-glossary--export-instance
@@ -933,11 +949,12 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (let ((terms-by-type
          (org-glossary--group-terms
           (org-glossary--sort-plist
-           (if duplicate-mentions
-               terms
-             (cl-remove-if
-              (lambda (trm) (plist-get trm :extracted))
-              terms))
+           (cl-remove-if
+            (lambda (trm)
+              (or (not (plist-get trm :uses)) ; This occurs when `trm' is an alias.
+                  (and (not duplicate-mentions)
+                       (plist-get trm :extracted))))
+            terms)
            :key #'string<)
           (lambda (trm) (plist-get trm :type))
           (or types (plist-get org-glossary-default-print-parameters :type))))
