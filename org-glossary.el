@@ -326,8 +326,7 @@ is non-nil and INCLUDE-GLOBAL nil."
                 (org-element-parse-buffer))))))
     (list :path path-spec
           :scan-time (current-time)
-          :terms (org-glossary--identify-alias-terms
-                  (org-glossary--extract-terms parse-tree))
+          :terms (org-glossary--extract-terms parse-tree)
           :included
           (mapcar
            #'org-glossary--parse-include-value
@@ -592,7 +591,7 @@ side-effect when it is provided."
   "Replace occurances of the TERMS with links.
 This returns a copy of TERMS with references recorded in :uses.
 
-When NO-MODIFY is non-nil, the buffer content will not be modified.
+When NO-MODIFY is non-nil, neither buffer content nor TERMS will be modified.
 When NO-NUMBER is non-nil, all links created or modified shall not include
 a reference number.
 When KEEP-UNUSED is non-nil, unused terms will be included in the result."
@@ -603,8 +602,8 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
         (start-time (float-time))
         (last-redisplay (float-time))
         terms-used element-context)
-    (dolist (term-entry terms)
-      (plist-put term-entry :uses nil))
+    (setq terms (org-glossary--strip-uses terms))
+    (org-glossary--identify-alias-terms terms)
     (save-excursion
       (goto-char (point-min))
       (while (org-glossary--mrx-search-forward terms-mrx)
@@ -646,6 +645,20 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                (when (member (plist-get trm :key) terms-used)
                  trm))
              terms)))))
+
+(defun org-glossary--strip-uses (terms &optional no-modify)
+  "Either modify or return a copy of TERMS with all :uses set to nil.
+Behaviour is set according to NO-MODIFY."
+  (if no-modify
+      (mapcar
+       (lambda (trm)
+         (if (plist-get trm :uses)
+             (org-combine-plists trm '(:uses nil))
+           trm))
+       terms)
+    (dolist (term-entry terms)
+      (plist-put term-entry :uses nil))
+    terms))
 
 (defvar org-glossary--mrx-last-tag nil
   "The tag of the last multi-rx matched by `org-glossary--multi-rx'.")
@@ -1603,6 +1616,11 @@ If TERM-REF is not given, the current point will be used."
                              (or (and (numberp term-ref) term-ref) (point)) 'face)
                             (point-max)))))
                   (org-glossary--select-term org-glossary--terms))))
+    (if-let ((aliased-term
+              (org-glossary--quicklookup
+               (string-trim (org-element-interpret-data
+                             (plist-get term-entry :value))))))
+        (setq term-entry aliased-term))
     (let ((def-file (plist-get term-entry :definition-file)))
       (if (bufferp def-file)
           (switch-to-buffer def-file))
