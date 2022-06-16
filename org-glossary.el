@@ -1402,8 +1402,8 @@ This should only be run as an export hook."
              (0 '(face org-glossary-term
                        help-echo org-glossary--term-help-echo
                        keymap (keymap
-                               (follow-link . org-glossary-term-definition)
-                               (mouse-2 . org-glossary-term-definition))) t)))))
+                               (follow-link . org-glossary-goto-term-definition)
+                               (mouse-2 . org-glossary-goto-term-definition))) t)))))
   per-term-p)
 
 (define-minor-mode org-glossary-mode
@@ -1468,8 +1468,8 @@ This should only be run as an export hook."
       `(help-echo
         org-glossary--term-help-echo
         keymap (keymap
-                (follow-link . org-glossary-term-definition)
-                (mouse-2 . org-glossary-term-definition)))))))
+                (follow-link . org-glossary-goto-term-definition)
+                (mouse-2 . org-glossary-goto-term-definition)))))))
 
 (defun org-glossary--term-help-echo (_window object pos)
   "Find the term reference at POS in OBJECT, and get the definition."
@@ -1599,7 +1599,7 @@ Where TERM-TEXT is constructed by `org-glossary--select-term-candidatify'."
       (get-text-property 0 'org-glossary--term term-text)
       :type))))
 
-(defun org-glossary-term-definition (&optional term-ref)
+(defun org-glossary-goto-term-definition (&optional term-ref)
   "Go to the definition of TERM-REF.
 TERM-REF may be a string or position in the buffer to look for a term.
 If TERM-REF is not given, the current point will be used."
