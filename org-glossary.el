@@ -1666,6 +1666,8 @@ If TERM-REF is not given, the current point will be used."
      (list term-str definition type category)))
   (unless (eq major-mode 'org-mode)
     (user-error "You need to be in `org-mode' to use org-glossary."))
+  (when (symbolp type)
+    (setq type (car (rassoc type org-glossary-headings))))
   (save-excursion
     (let* ((type-sec-pattern
             (format "^\\*%s %s\n" (if org-glossary-toplevel-only "" "+") type))
@@ -1689,19 +1691,23 @@ If TERM-REF is not given, the current point will be used."
               (goto-char type-sec-begin)
               (forward-char 1)
               (or (and (re-search-forward "^\\*+ " nil t)
-                       (forward-line -1))
+                       (forward-line -1)
+                       (line-end-position))
                   type-sec-end)))
            (category-sec-end
-            (progn
-              (unless (or (not category)
-                          (re-search-forward
-                           (format "^\\*+ %s[ \t]+:%s:\n"
-                                   category org-glossary--category-heading-tag)
-                           nil t))
-                (goto-char type-sec-end)
-                (insert (make-string (1+ type-hlevel) ?*) " "
-                        category " :" org-glossary--category-heading-tag ":\n"))
-              (point))))
+            (and category
+                 (if (re-search-forward
+                      (format "^\\*+ %s[ \t]+:%s:\n"
+                              category org-glossary--category-heading-tag)
+                      nil t)
+                     (or (and (re-search-forward "^\\*+ " nil t)
+                              (forward-line -1)
+                              (line-end-position))
+                      type-sec-end)
+                   (goto-char type-sec-end)
+                   (insert (make-string (1+ type-hlevel) ?*) " "
+                           category " :" org-glossary--category-heading-tag ":\n")
+                   (point)))))
       (goto-char (or (and category category-sec-end) type-sec-nocat-end))
       (re-search-backward "^[ \t]*[-+*] \\|^\\*")
       (forward-line 1)
