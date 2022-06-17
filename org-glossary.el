@@ -50,7 +50,7 @@
 ;;
 ;; DONE M-x org-glossary-create-definition
 ;;
-;; TODO support named indicies/index sections
+;; DONE support named definition sections
 ;;
 ;; DONE support for term aliases
 ;;
