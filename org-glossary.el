@@ -219,6 +219,10 @@ start of the export process:
 - The :category-heading form is inserted before a block of terms
   all assigned a particular category, given by the format spec %c.
 
+Instead of a format string, one can also provide a function as a
+template spec so long as it matches the function signature of
+`org-glossary--export-template'.
+
 The literal content of :definition-structure-preamble is inserted
 before the first :definition-structure in each block of
 definitions.
