@@ -48,7 +48,7 @@
 ;;
 ;; DONE org-glossary-global-terms
 ;;
-;; TODO M-x org-glossary-create-definition
+;; DONE M-x org-glossary-create-definition
 ;;
 ;; TODO support named indicies/index sections
 ;;
@@ -1626,6 +1626,88 @@ If TERM-REF is not given, the current point will be used."
           (switch-to-buffer def-file))
       (find-file def-file))
     (goto-char (plist-get term-entry :definition-pos))))
+
+(defun org-glossary-create-definition (term-str definition type &optional category)
+  "Add a entry for TERM-STR with DEFINITION, under TYPE and optionally CATEGORY."
+  ;; This is a ugly long function, but I think it has to be this way.
+  (interactive
+   (let* ((term-str
+           (read-string
+            "Term: "
+            (substring-no-properties
+             (or (and (region-active-p)
+                      (buffer-substring
+                       (region-beginning)
+                       (region-end)))
+                 (thing-at-point 'word)
+                 ""))))
+          (definition (read-string "Definition: "))
+          case-fold-search
+          (type-category
+           (split-string
+            (completing-read
+             "Type/category: "
+             (mapcar #'cdr org-glossary-headings)
+             nil nil
+             (cond
+              ((and (string-match-p "^[[:upper:]]+$" term-str)
+                    (string= term-str
+                             (replace-regexp-in-string
+                              "[^[:upper:]]" "" definition)))
+               "acronym")
+              ((string-empty-p definition) "index")
+              ((> (length (split-string definition)) 12) "glossary")))
+            "/"))
+          (type
+           (car (or (rassoc (intern (car type-category)) org-glossary-headings)
+                    (assoc (car type-category) org-glossary-headings)
+                    (car org-glossary-headings))))
+          (category (and (> (length type-category) 1) (cadr type-category))))
+     (list term-str definition type category)))
+  (unless (eq major-mode 'org-mode)
+    (user-error "You need to be in `org-mode' to use org-glossary."))
+  (save-excursion
+    (let* ((type-sec-pattern
+            (format "^\\*%s %s\n" (if org-glossary-toplevel-only "" "+") type))
+           (type-sec-begin
+            (progn
+              (unless (or (re-search-forward type-sec-pattern nil t)
+                          (progn (goto-char (point-min))
+                                 (re-search-forward type-sec-pattern nil t)))
+                (goto-char (point-max))
+                (insert "\n* " type "\n"))
+              (org-back-to-heading)))
+           (type-hlevel
+            (- (match-end 0) (match-beginning 0) 1))
+           (type-sec-end
+            (progn
+              (org-forward-heading-same-level 1)
+              (if (= type-sec-begin (point))
+                  (point-max) (1- (point)))))
+           (type-sec-nocat-end
+            (progn
+              (goto-char type-sec-begin)
+              (forward-char 1)
+              (or (and (re-search-forward "^\\*+ " nil t)
+                       (forward-line -1))
+                  type-sec-end)))
+           (category-sec-end
+            (progn
+              (unless (or (not category)
+                          (re-search-forward
+                           (format "^\\*+ %s[ \t]+:%s:\n"
+                                   category org-glossary--category-heading-tag)
+                           nil t))
+                (goto-char type-sec-end)
+                (insert (make-string (1+ type-hlevel) ?*) " "
+                        category " :" org-glossary--category-heading-tag ":\n"))
+              (point))))
+      (goto-char (or (and category category-sec-end) type-sec-nocat-end))
+      (re-search-backward "^[ \t]*[-+*] \\|^\\*")
+      (forward-line 1)
+      (if (and definition (not (string-empty-p definition)))
+          (insert (format "- %s :: %s" term-str definition) "\n")
+        (insert "- " term-str "\n")))))
 
 (provide 'org-glossary)
 ;;; org-glossary.el ends here
