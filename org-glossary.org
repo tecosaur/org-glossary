@@ -17,8 +17,9 @@ backends.
 
 ** Quickstart
 
-To define a glossary entry, simply place a top-level section in the document
-titled =Glossary= and define terms using a definition list, like so:
+To define a glossary entry, simply place a top-level heading in the document
+titled =Glossary= or =Acronym= and therein define terms using an Org definition
+list, like so:
 
 #+begin_example
 ,* Glossary
@@ -27,16 +28,47 @@ titled =Glossary= and define terms using a definition list, like so:
 - Org mode :: A rich and versatile editing mode for the lovely Org format.
 #+end_example
 
-Then simply use the terms as you usually would when writing, and everything will
-work itself out on export :)
+Then simply use the terms as you usually would when writing. On export Org
+Glossary will automatically:
++ Pick up on the uses of defined terms
++ Generate a Glossary/Acronym section at the end of the document
++ Link uses of terms with there definitions, in a backend-appropriate manner
+  (e.g. hyperlinks in html)
++ Give the expanded version of each acronym in parenthesis when they are first
+  used (e.g. "PICNIC (Problem In Chair, Not In Computer)")
+
+To generate an Index for certain terms, you can almost do the same thing, just
+use an =Index= heading and use a plain list of terms, e.g.
+
+#+begin_example
+,* Index
+- org-mode
+#+end_example
+
+To see how this all works, try exporting the following example with Org Glossary
+installed:
+
+#+begin_example
+Try using Org Glossary for all your glosses, acronyms, and more within your
+favourate ML with a unicorn mascot. It attempts to provide powerful
+functionality, in keeping with the simplicity of the Org ML we all know and
+love.
+
+,* Glossary
+- glosses :: Brief notations, giving the meaning of a word or wording in a text.
+,* Acronyms
+- ML :: Markup Language
+,* Index
+- unicorn
+#+end_example
 
 If you'd like to see a visual indication of this while in org-mode, call =M-x
-org-gossary-mode=.
+org-glossary-mode=.
 
 ** Design
 
 In large or technical documents, there's often a need for an appendix clarifying
-terms and listing occurrences. This may take the form of a glossary, index, or
+terms and listing occurrences; which may take the form of a glossary, index, or
 something else. Org Glossary abstracts all of these glossary-like forms into
 /tracked generated text replacements/. Most common structures fit into this
 abstraction like so:
@@ -56,7 +88,7 @@ can be performed by simply expanding a format string to create a link to the
 definition, with a first-use special behaviour for acronyms.
 
 There is a little special-cased behaviour for indexes (usage detection) and text
-substitution (fontification), but it kept to a minimum and ideally will be
+substitution (fontification), but it is kept to a minimum and ideally will be
 entirely generalised in future.
 
 * Usage
@@ -72,11 +104,13 @@ Definitions must be placed under one of the specially named headings listed in
 
 If ~org-glossary-toplevel-only~ is non-nil, then these headlines must also be
 level one headings. If it is nil, then they are recognised wherever they occur
-in the document.
+in the document. Note that when using subtree export and non-nil
+~org-glossary-toplevel-only~, only level-1 headings in the widened document will
+be recognised (i.e. it behaves the same as non-subtree export).
 
 Org Glossary supports searching for term definitions in other =#+include=​d files,
-respecting the various restrictions such as headings and line number ranges. One
-can also specify include paths providing definitions that should be globally
+respecting the various restrictions such as headings and line number ranges. You
+may also specify include paths providing definitions that should be globally
 available via ~org-glossary-global-terms~.
 
 *** Basic definitions
@@ -86,13 +120,18 @@ description lists. Term definitions are extracted from all non-nested
 description lists within the glossary heading, other elements are simply
 ignored.
 
-For example, to define "late pleistocene wolf" one would use a description list
+For example, to define "late pleistocene wolf" you could use a description list
 entry like so:
 
 #+begin_example
-- TERM :: DEFINITION
 - late pleistocene wolf :: an extinct lineage of the grey wolf, thought to be
   the ancestor of the dog
+#+end_example
+
+which is an instance of the basic structure,
+
+#+begin_example
+- TERM :: DEFINITION
 #+end_example
 
 *** Advanced definitions
@@ -108,10 +147,16 @@ make a few assumptions.
 This is equivalent to the following "full form",
 
 #+begin_example
-- SINGULAR KEY, PLURAL KEY = SINGULAR FORM, PLURAL FORM :: DEFINITION
 - automaton,automata = automaton,automata :: A thing or being regarded as having
   the power of spontaneous motion or action
 #+end_example
+
+which is an instance of the full structure,
+
+#+begin_example
+- SINGULAR KEY, PLURAL KEY = SINGULAR FORM, PLURAL FORM :: DEFINITION
+#+end_example
+
 
 This may seem overly complicated, but unfortunately irregular plurals and
 homographs exist. Here are some examples of where this functionality comes into
@@ -123,7 +168,7 @@ play:
 #+end_example
 
 Here we wish to clarify different uses of the same term "evening", and so define
-unique keys for each usage. In writing one would use the keys like so,
+unique keys for each usage. In writing you would use the keys like so,
 
 #+begin_example
 In the eveningtime I take to eveninglevel out the sand pit.
@@ -146,7 +191,7 @@ behaviour is identical and so this is fine.
 
 *** Categorisation
 
-To make working with a large collection of terms easier, one might use
+To make working with a large collection of terms easier, you might use
 sub-headings, e.g.
 
 #+begin_example
@@ -188,7 +233,7 @@ defined term and transforms them into one of the four glossary link types:
 
 To switch from implicit associations to explicit, set ~org-glossary-automatic~ to
 ~nil~ and then only =gls=​/​=glspl=​/​=Gls=​/​=Glspl= links will be picked up. To convert
-implicit associations to explicit links, one may run =M-x
+implicit associations to explicit links, you can run =M-x
 org-glossary-apply-terms= (if nothing happens, try running =M-x
 org-glossary-update-terms= first).
 
@@ -196,6 +241,19 @@ Note that as Org Glossary relies on links, recognised usages can only occur in
 places where a link is appropriate (i.e. not inside a source block, verbatim
 text, or another link, etc.). In addition terms in headings are ignored, as this
 is considered broadly desirable.
+
+In addition to all this, there's a bit of special behaviour for indexing. As
+you can discuss a topic without explicitly stating it, we support
+=ox-texinfo=-style =#+[cfkptv]?index= keywords. For example:
+
+#+begin_example
+,#+index: penguin
+The Linux operating system has a flightless, fat waterfowl
+(affectionately named Tux) as its mascot.
+
+,* Index
+- penguin
+#+end_example
 
 ** Printing definition sections
 
@@ -231,7 +289,6 @@ full is:
 #+begin_example
 ,#+print_glossary: :type glossary acronym index :level 0 :consume no :all no :only-contents no
 #+end_example
-
 
 ** The minor mode
 
@@ -365,9 +422,9 @@ Now we have the appendix with glossary-like definitions.
 #+end_example
 
 To avoid superfluous letter headings (i.e. not helpful), we have
- ~org-glossary-print-letter-minimums~. This variable specifies a threshold minimum
- number of distinct initial term letters and terms with the same letter before
- the ~:letter-heading~ template should be inserted.
+~org-glossary-print-letter-minimums~. This variable specifies a threshold minimum
+number of distinct initial term letters and terms with the same letter before
+the ~:letter-heading~ template should be inserted.
 
 If ~:heading~, ~:category-heading~, or ~:letter-heading~ start with ="* "= then
 asterisks will be automatically prefixed to set the headings to an appropriate
