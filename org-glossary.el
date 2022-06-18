@@ -609,8 +609,7 @@ side-effect when it is provided."
 
 (defun org-glossary--identify-alias-terms (terms)
   "Search for aliases in TERMS, and update term entries accordingly."
-  (let ((key-term-map (make-hash-table :test #'equal :size (length terms)))
-        value-str)
+  (let ((key-term-map (make-hash-table :test #'equal :size (length terms))))
     (dolist (term-entry terms)
       (puthash (plist-get term-entry :key) term-entry key-term-map))
     (dolist (term-entry terms)
@@ -646,7 +645,7 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
         (case-fold-search nil)
         (start-time (float-time))
         (last-redisplay (float-time))
-        terms-used element-context)
+        terms-used element-context element-at-point)
     (setq terms (org-glossary--strip-uses terms))
     (org-glossary--identify-alias-terms terms)
     (save-excursion
@@ -1093,9 +1092,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
           (concat (plist-get export-spec :definition-structure-preamble) "\n"))
      (mapconcat
       (lambda (letter-terms)
-        (let ((letter (car letter-terms))
-              (terms (cdr letter-terms))
-              (letter-heading
+        (let ((letter-heading
                (if use-letters-p
                    (org-glossary--export-instance
                     backend nil (cadr letter-terms) :letter-heading)
@@ -1112,7 +1109,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
            (mapconcat
             (lambda (term-entry)
               (org-glossary--print-terms-singular backend term-entry))
-            terms
+            (cdr letter-terms)
             "\n"))))
       terms-by-letter
       "\n"))))
