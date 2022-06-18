@@ -32,7 +32,7 @@ Then simply use the terms as you usually would when writing. On export Org
 Glossary will automatically:
 + Pick up on the uses of defined terms
 + Generate a Glossary/Acronym section at the end of the document
-+ Link uses of terms with there definitions, in a backend-appropriate manner
++ Link uses of terms with their definitions, in a backend-appropriate manner
   (e.g. hyperlinks in html)
 + Give the expanded version of each acronym in parenthesis when they are first
   used (e.g. "PICNIC (Problem In Chair, Not In Computer)")
@@ -50,7 +50,7 @@ installed:
 
 #+begin_example
 Try using Org Glossary for all your glosses, acronyms, and more within your
-favourate ML with a unicorn mascot. It attempts to provide powerful
+favourite ML with a unicorn mascot. It attempts to provide powerful
 functionality, in keeping with the simplicity of the Org ML we all know and
 love.
 
@@ -68,7 +68,7 @@ If you'd like to see a visual indication of term uses while in org-mode, call
 ** Design
 
 In large or technical documents, there's often a need for an appendix clarifying
-terms and listing occurrences; which may take the form of a glossary, index, or
+terms and listing occurrences; this may take the form of a glossary, index, or
 something else. Org Glossary abstracts all of these glossary-like forms into
 /tracked generated text replacements/. Most common structures fit into this
 abstraction like so:

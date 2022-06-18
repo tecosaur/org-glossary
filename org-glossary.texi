@@ -100,7 +100,7 @@ Pick up on the uses of defined terms
 @item
 Generate a Glossary/Acronym section at the end of the document
 @item
-Link uses of terms with there definitions, in a backend-appropriate manner
+Link uses of terms with their definitions, in a backend-appropriate manner
 (e.g. hyperlinks in html)
 @item
 Give the expanded version of each acronym in parenthesis when they are first
@@ -139,7 +139,7 @@ If you'd like to see a visual indication of term uses while in org-mode, call
 @section Design
 
 In large or technical documents, there's often a need for an appendix clarifying
-terms and listing occurrences; which may take the form of a glossary, index, or
+terms and listing occurrences; this may take the form of a glossary, index, or
 something else. Org Glossary abstracts all of these glossary-like forms into
 @emph{tracked generated text replacements}. Most common structures fit into this
 abstraction like so:
