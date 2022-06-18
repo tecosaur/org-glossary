@@ -301,25 +301,32 @@ Requires `org-glossary-fontify-types-differently' to be non-nil."
 
 ;;; Obtaining term definitions
 
-(defun org-glossary--get-terms (&optional path-spec include-global)
+(defun org-glossary--get-terms (&optional path-spec no-global already-included)
   "Obtain all known terms in the current buffer.
 `org-glossary-global-terms' will be used unless PATH-SPEC
 is non-nil and INCLUDE-GLOBAL nil."
-  (let ((term-source (org-glossary--get-terms-oneshot path-spec)))
+  (let* ((path-spec (org-glossary--complete-path-spec path-spec))
+         (term-source (org-glossary--get-terms-oneshot path-spec)))
+    (push path-spec already-included)
     (org-glossary--maybe-add-global-terms
      #'org-glossary--get-terms
      (apply #'append
             (plist-get term-source :terms)
-            (mapcar #'org-glossary--get-terms
-                    (plist-get term-source :included)))
-     (or include-global (null path-spec)))))
+            (mapcar (lambda (p) (org-glossary--get-terms p t already-included))
+                    (cl-set-difference (plist-get term-source :included)
+                                       already-included)))
+     (not no-global)
+     already-included)))
 
-(defun org-glossary--maybe-add-global-terms (term-getter term-set do-it-p)
+(defun org-glossary--maybe-add-global-terms (term-getter term-set do-it-p &optional already-included)
   "Apply TERM-GETTER to `org-glossary-global-terms' and add to TERM-SET if non-nil DO-IT-P."
   (if do-it-p
       (apply #'append
              term-set
-             (mapcar term-getter org-glossary-global-terms))
+             (mapcar term-getter
+                     (cl-set-difference (mapcar #'org-glossary--complete-path-spec
+                                                org-glossary-global-terms)
+                                        already-included)))
     term-set))
 
 (defun org-glossary--get-terms-oneshot (&optional path-spec)
@@ -455,7 +462,7 @@ a plist of the form:
    :terms TERM-LIST
    :included LIST-OF-PATH-SPECS)")
 
-(defun org-glossary--get-terms-cached (&optional path-spec include-global)
+(defun org-glossary--get-terms-cached (&optional path-spec no-global already-included)
   "Obtain all known terms in the current buffer, using the cache.
 `org-glossary-global-terms' will be used unless PATH-SPEC
 is non-nil and INCLUDE-GLOBAL nil."
@@ -483,13 +490,16 @@ is non-nil and INCLUDE-GLOBAL nil."
               (cdar (push (cons path-spec
                                 (org-glossary--get-terms-oneshot path-spec))
                           org-glossary--terms-cache)))))
+    (push path-spec already-included)
     (org-glossary--maybe-add-global-terms
      #'org-glossary--get-terms-cached
      (apply #'append
             (plist-get term-source :terms)
-            (mapcar #'org-glossary--get-terms-cached
-                    (plist-get term-source :included)))
-     (or include-global (null path-spec)))))
+            (mapcar (lambda (p) (org-glossary--get-terms-cached p t already-included))
+                    (cl-set-difference (plist-get term-source :included)
+                                       already-included)))
+     (not no-global)
+     already-included)))
 
 (defun org-glossary-clear-cache ()
   "Clear the global term cache."
@@ -1392,7 +1402,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 (defun org-glossary--prepare-buffer (&optional backend)
   "Modify the buffer to resolve all defined terms, prepearing it for export.
 This should only be run as an export hook."
-  (setq org-glossary--terms (org-glossary--get-terms-cached nil t)
+  (setq org-glossary--terms (org-glossary--get-terms-cached)
         org-glossary--current-export-spec
         (org-glossary--get-export-specs backend))
   (org-glossary--strip-headings nil nil nil t)
@@ -1566,7 +1576,7 @@ This should only be run as an export hook."
   (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
                                org-glossary--terms))
         current-terms added-terms removed-terms)
-    (setq org-glossary--terms (org-glossary--get-terms-cached nil t)
+    (setq org-glossary--terms (org-glossary--get-terms-cached)
           org-glossary--term-mrx
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal))
