@@ -561,12 +561,20 @@ side-effect when it is provided."
                  (if (and (= (length item-contents) 1)
                           (eq (caar item-contents) 'paragraph))
                      (org-element-contents (car item-contents))
-                   item-contents))))
-    (list :key key
-          :key-plural (unless (string-empty-p key-plural) key-plural)
+                   item-contents)))
+         (case-fold-search nil)
+         (sentancecase-to-lowercase
+          (lambda (word)
+            (if (string-match-p "^[[:upper:]][^[:upper:]]+$" word)
+                (concat (string (downcase (aref word 0))) (substring word 1))
+              word))))
+    (list :key (funcall sentancecase-to-lowercase key)
+          :key-plural (unless (string-empty-p key-plural)
+                        (funcall sentancecase-to-lowercase key-plural))
           :key-nonce (org-glossary--key-nonce key)
-          :term term
-          :term-plural (unless (string-empty-p plural) plural)
+          :term (funcall sentancecase-to-lowercase term)
+          :term-plural (unless (string-empty-p plural)
+                         (funcall sentancecase-to-lowercase plural))
           :alias-for nil
           :type (car type-category)
           :category (cdr type-category)
