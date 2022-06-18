@@ -7,45 +7,29 @@
 
 * Functionality
 
-There are four major pieces of functionality this package provides
+There are four major pieces of functionality this package provides a generalised
+interface for glossary-like structures, with default support for:
 + Glossary
 + Acronyms
-+ Index
++ Indices
 + Text substitutions
 
-Within specially named sections, Glossary terms, Acronyms, and Text
-substitutions are defined using definition lists, using the following forms:
-#+begin_example
-- term :: definition         # implicit plural form
-- term, terms :: definition  # explicit plural form
-#+end_example
-
-Indexed terms are defined using normal lists, using the pattern of the
-definition list tags above.
-
-Then, all uses of defined terms in the document are picked up and on export
-Glossary/Acronym/Index sections are appended to the document.
+For more details, see the [[file:org-glossary.org][documentation]].
 
 * Example
 
 #+begin_example
-Apple and ACRs, why not substitute something.
-: An apple and ACR, why not substitute something.
-
-Mentioning apple again, and now bananas.
-
-This is an org document.
+Try using Org Glossary for all your glosses, acronyms, and more within your
+favourite ML with a unicorn mascot. It attempts to provide powerful
+functionality, in keeping with the simplicity of the Org ML we all know and
+love.
 
 ,* Glossary
-- apple :: A fruit.
-- banana :: Another fruit.
-- pear :: Yet another fruit.
+- glosses :: Brief notations, giving the meaning of a word or wording in a text.
 ,* Acronyms
-- ACR :: Absolutely Credible acRonym
-,* Text Substitutions
-- substitute :: replace
-,* Index Terms
-- org
+- ML :: Markup Language
+,* Index
+- unicorn
 #+end_example
 
 * Installation
@@ -54,6 +38,7 @@ This is an org document.
 (use-package org-glossary
   :straight (:host github :repo "tecosaur/org-glossary"))
 #+end_src
+
 ** Doom
 #+begin_src elisp
 ;; $DOOMDIR/packages.el
@@ -61,5 +46,6 @@ This is an org document.
   :recipe (:host github :repo "tecosaur/org-glossary"))
 
 ;; $DOOMDIR/config.el
-(use-package! org-glossary :after org)
+(use-package! org-glossary
+  :hook (org-mode . org-glossary-mode))
 #+end_src
