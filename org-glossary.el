@@ -1327,7 +1327,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
         (replace-match "\\1a" nil nil word))
        ((string-match "\\(her\\|at\\|gr\\)o$" word)
         (replace-match "\\1oes" nil nil word))
-       ((string-match "\\(seraph\\|cherub\\)\\(?:im\\)$" word)
+       ((string-match "\\(seraph\\|cherub\\)\\(?:im\\)?$" word)
         (replace-match "\\1im" nil nil word))
        ((string-match "\\(alumn\\|alg\\|vertebr\\)\\(?:a\\|ae\\)$" word)
         (replace-match "\\1ae" nil nil word))
