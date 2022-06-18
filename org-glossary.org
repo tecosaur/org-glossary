@@ -62,8 +62,8 @@ love.
 - unicorn
 #+end_example
 
-If you'd like to see a visual indication of this while in org-mode, call =M-x
-org-glossary-mode=.
+If you'd like to see a visual indication of term uses while in org-mode, call
+=M-x org-glossary-mode=.
 
 ** Design
 
@@ -78,14 +78,13 @@ abstraction like so:
 3. Generate a definition section for all used terms, linking to the uses
 
 Out of the box, four glossary-like structures are configured:
-+ Glossary
-+ Acronyms
-+ Index
-+ Text Substitutions
++ Glossary :: =f($term) = linktodef($term)=
++ Acronyms :: =f($term) = linktodef($term)= except for the first use which is
+  =$term ($definition)=.
++ Index :: =f($term) = $term=
++ Text Substitutions :: =f($term) = $definition=
 
-For each of these four structures, the transformation represented by =f($term)=
-can be performed by simply expanding a format string to create a link to the
-definition, with a first-use special behaviour for acronyms.
+For more details on how this works, see [[Structure of an export template set]].
 
 There is a little special-cased behaviour for indexes (usage detection) and text
 substitution (fontification), but it is kept to a minimum and ideally will be
@@ -97,10 +96,13 @@ entirely generalised in future.
 
 Definitions must be placed under one of the specially named headings listed in
 ~org-glossary-headings~, by default:
-+ Glossary
-+ Acronyms
-+ Index
-+ Text Substitutions
+
+#+begin_example
+,* Glossary
+,* Acronyms
+,* Index
+,* Text Substitutions
+#+end_example
 
 If ~org-glossary-toplevel-only~ is non-nil, then these headlines must also be
 level one headings. If it is nil, then they are recognised wherever they occur

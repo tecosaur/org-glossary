@@ -132,8 +132,8 @@ love.
 - unicorn
 @end example
 
-If you'd like to see a visual indication of this while in org-mode, call @samp{M-x
-org-glossary-mode}.
+If you'd like to see a visual indication of term uses while in org-mode, call
+@samp{M-x org-glossary-mode}.
 
 @node Design
 @section Design
@@ -154,20 +154,19 @@ Generate a definition section for all used terms, linking to the uses
 @end enumerate
 
 Out of the box, four glossary-like structures are configured:
-@itemize
-@item
-Glossary
-@item
-Acronyms
-@item
-Index
-@item
-Text Substitutions
-@end itemize
+@table @asis
+@item Glossary
+@samp{f($term) = linktodef($term)}
+@item Acronyms
+@samp{f($term) = linktodef($term)} except for the first use which is
+@samp{$term ($definition)}.
+@item Index
+@samp{f($term) = $term}
+@item Text Substitutions
+@samp{f($term) = $definition}
+@end table
 
-For each of these four structures, the transformation represented by @samp{f($term)}
-can be performed by simply expanding a format string to create a link to the
-definition, with a first-use special behaviour for acronyms.
+For more details on how this works, see @ref{Structure of an export template set}.
 
 There is a little special-cased behaviour for indexes (usage detection) and text
 substitution (fontification), but it is kept to a minimum and ideally will be
@@ -198,16 +197,13 @@ entirely generalised in future.
 
 Definitions must be placed under one of the specially named headings listed in
 @code{org-glossary-headings}, by default:
-@itemize
-@item
-Glossary
-@item
-Acronyms
-@item
-Index
-@item
-Text Substitutions
-@end itemize
+
+@example
+* Glossary
+* Acronyms
+* Index
+* Text Substitutions
+@end example
 
 If @code{org-glossary-toplevel-only} is non-nil, then these headlines must also be
 level one headings. If it is nil, then they are recognised wherever they occur
