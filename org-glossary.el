@@ -154,7 +154,7 @@ These can be set by #+print_glossary in babel :key value style."
           :definition-structure-preamble ""
           :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
           :category-heading "* %c\n"
-          :letter-separator "*%L*\n")
+          :letter-heading "*%L*\n")
        (glossary :heading "Glossary")
        (acronym :heading "Acronyms"
                 :first-use "%v (%u)")
@@ -163,7 +163,7 @@ These can be set by #+print_glossary in babel :key value style."
        (substitution :heading ""
                      :use "%v"
                      :definition-structure ""
-                     :letter-separator ""))
+                     :letter-heading ""))
     (latex (t :use "\\hyperlink{gls-%k}{\\label{gls-%k-use-%r}%t}"
               :definition "\\hypertarget{gls-%k}{%t}"
               :backref "\\pageref{gls-%k-use-%r}"))
@@ -194,7 +194,7 @@ The following term forms as recognised for all template specs:
   :definition
 There are also two special forms for the default template spec:
   :definition-structure
-  :letter-separator
+  :letter-heading
 
 Within each template, the following format specs are applied:
   %t the term
@@ -213,7 +213,7 @@ start of the export process:
 - The :definition-structure form is used as the template for the
   whole definition entry, and uses the format specs %d, %v, %b
   for the definition term, value, and backreferences respectively.
-- The :letter-separator form is inserted before a block of terms
+- The :letter-heading form is inserted before a block of terms
   starting with the letter, given by the format spec %l and %L in
   lower and upper case respectively.
 - The :category-heading form is inserted before a block of terms
@@ -1033,7 +1033,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
          (use-letters-p
           (and (> (apply #'+ num-terms-by-letter) 15)
                (> (apply #'max num-terms-by-letter) 3)
-               (not (string-empty-p (plist-get export-spec :letter-separator))))))
+               (not (string-empty-p (plist-get export-spec :letter-heading))))))
     (concat
      (and (not use-letters-p)
           (not (string-empty-p (plist-get export-spec :definition-structure-preamble)))
@@ -1047,7 +1047,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
              (concat
               "\n"
               (format-spec
-               (plist-get export-spec :letter-separator)
+               (plist-get export-spec :letter-heading)
                `((?l . ,(string letter))
                  (?L . ,(string (upcase letter)))))
               "\n"
