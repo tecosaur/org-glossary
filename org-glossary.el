@@ -334,16 +334,14 @@ is non-nil and INCLUDE-GLOBAL nil."
          (parse-tree
           (if path-buffer
               (with-current-buffer path-buffer
-                (save-restriction
-                  (widen)
-                  (org-element-parse-buffer)))
+                (org-with-wide-buffer
+                 (org-element-parse-buffer)))
             (with-temp-buffer
               (setq buffer-file-name (plist-get path-spec :file))
               (org-glossary--include-once path-spec)
               (set-buffer-modified-p nil)
-              (save-restriction
-                (widen)
-                (org-element-parse-buffer))))))
+              (org-with-wide-buffer
+               (org-element-parse-buffer))))))
     (list :path path-spec
           :scan-time (current-time)
           :terms (org-glossary--extract-terms parse-tree)
@@ -505,9 +503,8 @@ is non-nil and INCLUDE-GLOBAL nil."
 Note that this removes definition values from PARSE-TREE by
 side-effect when it is provided."
   (let* ((parse-tree (or parse-tree
-                         (save-restriction
-                           (widen)
-                           (org-element-parse-buffer))))
+                         (org-with-wide-buffer
+                          (org-element-parse-buffer))))
          (buffer-file-name (org-element-property :path parse-tree)))
     (apply #'nconc
            (org-element-map
@@ -1463,9 +1460,8 @@ This should only be run as an export hook."
     (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append)
     (org-glossary-update-terms))
    (t (font-lock-remove-keywords nil org-glossary--font-lock-keywords)
-      (save-restriction
-        (widen)
-        (font-lock-flush)))))
+      (org-with-wide-buffer
+       (font-lock-flush)))))
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
@@ -1592,9 +1588,8 @@ This should only be run as an export hook."
                              (length removed-terms)
                              (if (> (length removed-terms) 1) "s" "")))))))
   (when org-glossary-mode
-    (save-restriction
-      (widen)
-      (font-lock-flush))))
+    (org-with-wide-buffer
+     (font-lock-flush))))
 
 (defun org-glossary--select-term (terms)
   "Select a term entry from TERMS."
