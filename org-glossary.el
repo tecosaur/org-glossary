@@ -151,10 +151,11 @@ These can be set by #+print_glossary in babel :key value style."
           :first-use "%u"
           :definition "%t"
           :backref "%r"
-          :definition-structure-preamble ""
-          :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
+          :heading ""
           :category-heading "* %c\n"
-          :letter-heading "*%L*\n")
+          :letter-heading "*%L*\n"
+          :definition-structure-preamble ""
+          :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n")
        (glossary :heading "* Glossary")
        (acronym :heading "* Acronyms"
                 :first-use "%v (%u)")
@@ -163,6 +164,7 @@ These can be set by #+print_glossary in babel :key value style."
        (substitution :heading ""
                      :use "%v"
                      :definition-structure ""
+                     :category-heading ""
                      :letter-heading ""))
     (latex (t :use "\\hyperlink{gls-%k}{\\label{gls-%k-use-%r}%t}"
               :definition "\\hypertarget{gls-%k}{%t}"
