@@ -924,6 +924,12 @@ optional arguments:
                               (plist-get term-entry
                                          (if plural-p :term-plural :term))))
             parameters))
+    (when (string-match-p "%l" template)
+      (push (cons ?l (string (downcase (aref (plist-get term-entry :term) 0))))
+            parameters))
+    (when (string-match-p "%L" template)
+      (push (cons ?L (string (upcase (aref (plist-get term-entry :term) 0))))
+            parameters))
     (when (and (not (memq ?v (mapcar #'car extra-parameters)))
                (string-match-p "%v" template))
       (push (cons ?v
@@ -1004,11 +1010,13 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
         (export-spec (alist-get type org-glossary--current-export-spec))
         content cat-heading)
     (if (= (length terms-by-category) 1)
-        (org-glossary--print-terms-by-letter backend type terms)
+        (org-glossary--print-terms-by-letter
+         backend type terms (+ level (if (caar terms-by-category) 1 0)))
       (mapconcat
        (lambda (cat-terms)
          (setq content (org-glossary--print-terms-by-letter
-                        backend type (cdr cat-terms))
+                        backend type (cdr cat-terms)
+                        (+ level (if (cl-some #'car terms-by-category) 1 0)))
                cat-heading (org-glossary--export-instance
                             backend nil (cadr cat-terms) :category-heading))
          (if (not (string-empty-p (plist-get export-spec :category-heading)))
@@ -1022,7 +1030,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
        terms-by-category
        "\n"))))
 
-(defun org-glossary--print-terms-by-letter (backend type terms)
+(defun org-glossary--print-terms-by-letter (backend type terms level)
   "Produce an org-mode AST for TYPE in BACKEND defining ASSEMBLED-TERMS."
   (let* ((terms-by-letter
           (org-glossary--group-terms
@@ -1042,18 +1050,21 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
      (mapconcat
       (lambda (letter-terms)
         (let ((letter (car letter-terms))
-              (terms (cdr letter-terms)))
+              (terms (cdr letter-terms))
+              (letter-heading
+               (if use-letters-p
+                   (org-glossary--export-instance
+                    backend nil (cadr letter-terms) :letter-heading)
+                 "")))
           (concat
-           (when use-letters-p
-             (concat
-              "\n"
-              (format-spec
-               (plist-get export-spec :letter-heading)
-               `((?l . ,(string letter))
-                 (?L . ,(string (upcase letter)))))
-              "\n"
-              (and (not (string= "" (plist-get export-spec :definition-structure-preamble)))
-                   (concat (plist-get export-spec :definition-structure-preamble) "\n"))))
+           (and (not (string-empty-p letter-heading))
+                (concat
+                 (if (string-match-p "^\\* " letter-heading)
+                     (concat (make-string level ?*) letter-heading)
+                   letter-heading)
+                 "\n"
+                 (and (not (string= "" (plist-get export-spec :definition-structure-preamble)))
+                      (concat (plist-get export-spec :definition-structure-preamble) "\n"))))
            (mapconcat
             (lambda (term-entry)
               (org-glossary--print-terms-singular backend term-entry))
