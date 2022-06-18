@@ -431,6 +431,60 @@ the ~:letter-heading~ template should be inserted.
 If ~:heading~, ~:category-heading~, or ~:letter-heading~ start with ="* "= then
 asterisks will be automatically prefixed to set the headings to an appropriate
 level.
+
+** Creating a new glossary type
+
+Let's consider a few examples. To start with, say we want to be able to define
+indexed terms under the heading =Indices= instead of =Index=. To accomplish this,
+all you need to do is add an entry to ~org-glossary-headings~, which can be done
+via the customisation interface or with the following snippet:
+
+#+begin_example
+(customize-set-value
+ 'org-glossary-headings
+ (cl-remove-duplicates (append org-glossary-headings
+                               '(("Indices" . index)))))
+#+end_example
+
+Should we actually want to have this be reflected in the export, we could
+either:
++ Rename the =index= heading to =* Indices=, or
++ Create a near-copy of =index=, just changing the heading
+
+In the first case, all we need to do is execute the following snippet.
+
+#+begin_example
+(plist-put (alist-get 'index (alist-get t org-glossary-export-specs))
+           :heading "* Indices")
+#+end_example
+
+Should we actually want to have this be reflected in the export, instead of
+associating =Indices= with the pre-defined index term we would first add an
+~("Indices" . indicies)~ pair to ~org-glossary-headings~ (as before).
+Then, we can copy each =index= template currently in ~org-glossary-export-specs~ and
+simply update the default ~:heading~ as we've just done for =index=.
+
+#+begin_example
+(dolist (template-set org-glossary-export-specs)
+  (when-let ((index-template (alist-get 'index (cdr template-set))))
+    (push (cons 'indices index-template) (cdr template-set))))
+
+(plist-put (alist-get 'indices (alist-get t org-glossary-export-specs))
+           :heading "* Indices")
+#+end_example
+
+For our final example, let's say we wanted to add support for =Abbreviations=.
+This works in much the same way as Acronyms, just with shortened forms of words
+or phrases not constructed from the first letters. After adding an
+~("Abbreviations" . abbreviation)~ pair to ~org-glossary-headings~ in the same
+manner as earlier, this is as simple as:
+
+#+begin_example
+(push '(abbreviation :heading "* Abbreviations"
+                     :first-use "%v (%u)")
+      (plist-get t org-glossary-export-specs))
+#+end_example
+
 ** Tweaking specific exports
 
 Instead of overwriting ~org-glossary-export-specs~, it is recommended that you
