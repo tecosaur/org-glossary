@@ -1631,6 +1631,13 @@ If TERM-REF is not given, the current point will be used."
       (find-file def-file))
     (goto-char (plist-get term-entry :definition-pos))))
 
+(defun org-glossary-insert-term-reference ()
+  "Pick a term, and insert a reference to it."
+  (interactive)
+  (when-let ((term-entry (org-glossary--select-term org-glossary--terms)))
+    (insert (format (if org-glossary-automatic "%s" "[[gls:%s]]")
+                    (plist-get term-entry :key)))))
+
 (defun org-glossary-create-definition (term-str definition type &optional category)
   "Add a entry for TERM-STR with DEFINITION, under TYPE and optionally CATEGORY."
   ;; This is a ugly long function, but I think it has to be this way.
