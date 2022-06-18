@@ -1,0 +1,388 @@
+#+title: Org Glossary
+#+author: TEC
+#+date: 2022-06-17
+#+language: en
+
+#+texinfo_dir_category: Emacs
+#+texinfo_dir_title: Org Glossary: (org-glossary)
+#+texinfo_dir_desc: Defined terms and abbreviations in Org
+
+* Introduction
+** Summary
+
+Org Glossary defines a flexible model for working with /glossary-like/ constructs
+(glossaries, acronyms, indices, etc.) within Org documents, with support for
+in-buffer highlighting of defined terms and high-quality exports across all =ox-*=
+backends.
+
+** Quickstart
+
+To define a glossary entry, simply place a top-level section in the document
+titled =Glossary= and define terms using a definition list, like so:
+
+#+begin_example
+,* Glossary
+- Emacs :: A lisp-based generic user-centric text manipulation environment that
+  masquerades as a text editor.
+- Org mode :: A rich and versatile editing mode for the lovely Org format.
+#+end_example
+
+Then simply use the terms as you usually would when writing, and everything will
+work itself out on export :)
+
+If you'd like to see a visual indication of this while in org-mode, call =M-x
+org-gossary-mode=.
+
+** Design
+
+In large or technical documents, there's often a need for an appendix clarifying
+terms and listing occurrences. This may take the form of a glossary, index, or
+something else. Org Glossary abstracts all of these glossary-like forms into
+/tracked generated text replacements/. Most common structures fit into this
+abstraction like so:
+
+1. Search for definitions of =$term=
+2. Replace all uses of =$term= with =f($term)=
+3. Generate a definition section for all used terms, linking to the uses
+
+Out of the box, four glossary-like structures are configured:
++ Glossary
++ Acronyms
++ Index
++ Text Substitutions
+
+For each of these four structures, the transformation represented by =f($term)=
+can be performed by simply expanding a format string to create a link to the
+definition, with a first-use special behaviour for acronyms.
+
+There is a little special-cased behaviour for indexes (usage detection) and text
+substitution (fontification), but it kept to a minimum and ideally will be
+entirely generalised in future.
+
+* Usage
+** Defining terms
+*** Placement of definitions
+
+Definitions must be placed under one of the specially named headings listed in
+~org-glossary-headings~, by default:
++ Glossary
++ Acronyms
++ Index
++ Text Substitutions
+
+If ~org-glossary-toplevel-only~ is non-nil, then these headlines must also be
+level one headings. If it is nil, then they are recognised wherever they occur
+in the document.
+
+Org Glossary supports searching for term definitions in other =#+include=​d files,
+respecting the various restrictions such as headings and line number ranges. One
+can also specify include paths providing definitions that should be globally
+available via ~org-glossary-global-terms~.
+
+*** Basic definitions
+
+Org already has a very natural structure for term-definition associations,
+description lists. Term definitions are extracted from all non-nested
+description lists within the glossary heading, other elements are simply
+ignored.
+
+For example, to define "late pleistocene wolf" one would use a description list
+entry like so:
+
+#+begin_example
+- TERM :: DEFINITION
+- late pleistocene wolf :: an extinct lineage of the grey wolf, thought to be
+  the ancestor of the dog
+#+end_example
+
+*** Advanced definitions
+
+When giving a simple definition like =automaton :: A thing or being regarded as
+having the power of spontaneous motion or action=, Org Glossary will actually
+make a few assumptions.
++ Your wish to refer to the term =automaton= with =automaton=
++ There is also a plural form, guessed by calling ~org-glossary-plural-function~,
+  in this case resulting in =automata=, and you wish to refer to the plural form
+  with =automata=.
+
+This is equivalent to the following "full form",
+
+#+begin_example
+- SINGULAR KEY, PLURAL KEY = SINGULAR FORM, PLURAL FORM :: DEFINITION
+- automaton,automata = automaton,automata :: A thing or being regarded as having
+  the power of spontaneous motion or action
+#+end_example
+
+This may seem overly complicated, but unfortunately irregular plurals and
+homographs exist. Here are some examples of where this functionality comes into
+play:
+
+#+begin_example
+- eveningtime=evening :: The latter part of the day, and early night.
+- eveninglevel=evening :: To make more even, to become balanced or level.
+#+end_example
+
+Here we wish to clarify different uses of the same term "evening", and so define
+unique keys for each usage. In writing one would use the keys like so,
+
+#+begin_example
+In the eveningtime I take to eveninglevel out the sand pit.
+#+end_example
+
+Let us now consider both irregular plurals and defective nouns.
+
+#+begin_example
+- ox, oxen :: A male bovine animal.
+- sheep, :: A domesticated ruminant mammal with a thick wooly coat.
+- glasses, :: An optical instrument worn to correct vision.
+#+end_example
+
+In the case of "ox, oxen" we give the irregular plural form explicitly. "Sheep"
+is also an irregular plural and by just putting a comma but omitting the plural
+form no plural form will be generated (it will be treated as a /singularia
+tantum/). The same behaviour occurs with "glasses", and while it is a /plurale
+tantum/ internally it will be represented as a /singularia tantum/, but the
+behaviour is identical and so this is fine.
+
+*** Categorisation
+
+To make working with a large collection of terms easier, one might use
+sub-headings, e.g.
+
+#+begin_example
+,* Glossary
+,** Animals
+- late pleistocene wolf :: an extinct lineage of the grey wolf, thought to be
+  the ancestor of the dog
+- ox, oxen :: A male bovine animal.
+- sheep, :: A domesticated ruminant mammal with a thick wooly coat.
+,** Technology
+- Emacs :: A lisp-based generic user-centric text manipulation environment that
+  masquerades as a text editor.
+- glasses, :: An optical instrument worn to correct vision.
+#+end_example
+
+This structure will be ignored on export, allowing you to structure things
+freely without worrying about how it will affect the export. Should you wish to
+split up the exported entries into categories, this can be accomplished by using
+subheadings with the =:category:= tag. You can nest category-tagged subheadings
+inside each other, but only the innermost category will be applied.
+
+#+begin_example
+,* Glossary
+,** Animals :category:
+,** Technology :category:
+,*** Text Editors :category:
+,*** Mechanical :category:
+#+end_example
+
+** Using terms
+
+Org Glossary presumes that you'll want to associate a defined term with every
+usage of it. As such, on export it scans the document for all instances of a
+defined term and transforms them into one of the four glossary link types:
++ =gls=, singular lowercase
++ =glspl=, plural lowercase
++ =Gls=, singular sentence case
++ =Glspl=, plural sentence case
+
+To switch from implicit associations to explicit, set ~org-glossary-automatic~ to
+~nil~ and then only =gls=​/​=glspl=​/​=Gls=​/​=Glspl= links will be picked up. To convert
+implicit associations to explicit links, one may run =M-x
+org-glossary-apply-terms= (if nothing happens, try running =M-x
+org-glossary-update-terms= first).
+
+Note that as Org Glossary relies on links, recognised usages can only occur in
+places where a link is appropriate (i.e. not inside a source block, verbatim
+text, or another link, etc.). In addition terms in headings are ignored, as this
+is considered broadly desirable.
+
+** Printing definition sections
+
+When exporting a document, all identified glossary headings are unconditionally
+stripped from the document. If nothing else is done, based on term usage
+definition sections will be generated and appended to the document.
+
+Fine grained control over the generation of definition sections is possible via
+the =#+print_glossary:= keyword, which disables the default "generate and append to
+document" behaviour.
+
+Simply inserting a =#+print_glossary:= keyword will result in the default
+generated definition sections being inserted at the location of the
+=#+print_glossary:= keyword. However, customisation of the behaviour is possible
+via a number of babel-style =:key value= options, namely:
++ =:type= (~glossary acronym index~ by default), the specific glossary-like
+  structures that definition sections should be generated for
++ =:level= (~0~ by default), both:
+  - The scope in which term uses should be searched for, with 0 representing the
+    whole document, 1 within the parent level-1 heading, 2 the parent level-2
+    heading, etc.
+  - One less than the minimum inserted heading level.
++ =:consume= (~nil~ by default), if =t= or =yes= then marks terms defined here as having
+  been defined, preventing them from being listed in any other =#+print_glossary:=
+  unless =:all= is set to =t= or =yes=.
++ =:all= (~nil~ by default), behaves as just described in =:consumed=.
++ =:only-contents= (~nil~ by default), if =t= or =yes= then the ~:heading~ (from the
+  export template) is excluded from the generated content.
+
+Putting this all together, the default =#+print_glossary:= command written out in
+full is:
+
+#+begin_example
+,#+print_glossary: :type glossary acronym index :level 0 :consume no :all no :only-contents no
+#+end_example
+
+
+** The minor mode
+
+A visual indication of defined terms instances is provided by the minor mode
+~org-glossary-mode~. This essentially performs two actions:
+1. Run ~org-glossary-update-terms~ to update an buffer-local list of defined terms
+2. Add some fontification rules to make term uses stand out.
+
+The local list of defined terms and fontification allow for a few niceties, such
+as:
++ Showing the term definition in the minibuffer when hovering over a fontified use
++ Calling =M-x org-glossary-goto-term-definition= or clicking on a fontified use
+  to go to the definition
++ =M-x org-glossary-insert-term-reference= to view the list of currently defined
+  terms, and perhaps insert a use.
++ In the case of /Text Substitutions/, displaying the replacement text on top of
+  the use.
+
+* Export configuration
+** Setting export parameters
+
+The content generated for export is governed by templates defined in
+~org-glossary-export-specs~. We will discuss them in detail shortly, but for now
+we consider that in different situations we will want different generated
+content. There are two levels on which this applies:
+1. By export backend
+2. By the type of glossary-like structure (Glossary, Acronyms, Index, etc.)
+
+This is accounted for by creating an /alist of alists of templates/. This is a
+bit of a mouthful, so let's unpack what exactly is going on.
+
+First, we create associations between export backends and specs, with the
+special "backend" =t= as the default value, i.e.
+
+#+begin_example
+((t . DEFAULT-TEMPLATE-SET)
+ (html . HTML-TEMPLATE-SET)
+ (latex . LATEX-TEMPLATE-SET)
+ ...)
+#+end_example
+
+When selecting the appropriate template set, we actually check each entry
+against the current export backend using ~org-export-derived-backend-p~ (in
+order). This has two implications:
++ You can export to derived backends (e.g. beamer) and things should just work
++ If specifying a template set for a derived backend (e.g. =beamer=) be sure to
+  put it /before/ any parent backends (i.e. =latex=, in =beamer='s case) in
+  ~org-glossary-export-specs~ to ensure it is actually used.
+
+The backend-appropriate template set is itself an alist of templates, like so:
+
+#+begin_example
+((t . TEMPLATE)
+ (glossary . TEMPLATE)
+ (acronym . TEMPLATE)
+ (index . TEMPLATE))
+#+end_example
+
+Once again, =t= gives the default value. For each of the types listed in
+~org-glossary-headings~, the template is filled out, pulling first from the
+backend-specific defaults template, then the global defaults. This gives a
+complete template set which governs the export behaviour for each type of
+glossary-like structure for the current backend.
+
+** Structure of an export template set
+
+The export of term uses and definitions is governed by /template sets/. The
+default template set is given by ~(alist-get t (alist-get t
+~org-glossary-export-specs))~, the default value of which is given by the
+following property list:
+
+#+begin_example
+(:use "%t"
+ :first-use "%u"
+ :definition "%t"
+ :backref "%r"
+ :heading ""
+ :category-heading "* %c\n"
+ :letter-heading "*%L*\n"
+ :definition-structure-preamble ""
+ :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n")
+#+end_example
+
+
+Each property refers to a particular situation, and the value is either:
++ A format string that represents the content that should be used
++ A function with the same signature as ~org-glossary--export-template~, that
+  generated the replacement content string.
+
+The ~:use~, ~:first-use~, ~:definition~, and ~:backref~ properties are applied during
+backend-specific content transcoding (i.e. using the syntax of the backend's
+output), while ~:definition-structure~, ~:category-heading~, and ~:letter-seperator~
+are applied to a copy of the Org document just prior to the backend-specific
+export process (and so should be written using Org syntax).
+
+The format strings can make use of the following tokens:
++ =%t=, the term being defined/used. This is pluralised and capitalised
+  automatically based on the link type (=gls=​/​=glspl=​/​=Gls=​/​=Glspl=).
++ =%v=, the term definition value.
++ =%k=, the term key.
++ =%K=, the term key buffer-local nonce (number used only once). This will only be
+  consistent within a particular Emacs session.
++ =%l=, the first letter of the term, in lower case.
++ =%L=, the first letter of the term, in upper case.
++ =%r=, the term reference index (only applicable to ~:use~ and ~:first-use~).
++ =%n=, the number of times the term is used/referenced.
++ =%c=, the term category.
++ =%u=, the result of ~:use~ (primarily intended for convenience with ~:first-use~)
++ =%d=, the result of ~:definition~ (only applicable to ~:definition-structure~)
++ =%b=, all the ~:backref~ results joined with =", "= (only applicable to ~:definition-structure~).
+
+The ~:definition-structure-preamble~ and ~:heading~ parameters are literal strings
+also inserted to the copy of the Org document just prior to backend-specific
+export stages.
+
+To illustrate how these properties come into play, the following example uses
+the property names in place of their generated content.
+
+#+begin_example
+Here's some text and now the term :first-use, if I use the term again
+it is now :use. Once more, :use.
+
+Now we have the appendix with glossary-like definitions.
+
+:heading
+
+:category-heading
+:letter-heading
+:definition-structure-preamble
+:definition-structure(:definition def-value :backref)
+#+end_example
+
+To avoid superfluous letter headings (i.e. not helpful), we have
+ ~org-glossary-print-letter-minimums~. This variable specifies a threshold minimum
+ number of distinct initial term letters and terms with the same letter before
+ the ~:letter-heading~ template should be inserted.
+
+If ~:heading~, ~:category-heading~, or ~:letter-heading~ start with ="* "= then
+asterisks will be automatically prefixed to set the headings to an appropriate
+level.
+** Tweaking specific exports
+
+Instead of overwriting ~org-glossary-export-specs~, it is recommended that you
+instead make use of ~setcdr~ or ~plist-put~ like so:
+
+#+begin_example
+(let ((latex-dspec (alist-get t (alist-get 'latex org-glossary-export-specs))))
+  (plist-put latex-dspec :backref "gls-%k-use-%r")
+  (plist-put latex-dspec :definition-structure
+                         "*%d*\\emsp{}%v\\ensp{}@@latex:\\labelcpageref{@@%b@@latex:}@@"))
+#+end_example
+
+This allows for any change in other backends or the defaults you're not
+particularly attached to from freely updating.
