@@ -972,7 +972,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
                   (and (not duplicate-mentions)
                        (plist-get trm :extracted))))
             terms)
-           :key #'string<)
+           :key #'string>)
           (lambda (trm) (plist-get trm :type))
           (or types (plist-get org-glossary-default-print-parameters :type))))
         (level (or level 1))
@@ -998,7 +998,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   "Produce a string printing TERMS for TYPE in BACKEND split by category."
   (let ((terms-by-category
          (org-glossary--group-terms
-          (org-glossary--sort-plist terms :key #'string<)
+          (org-glossary--sort-plist terms :key #'string>)
           (lambda (trm) (plist-get trm :category))))
         (export-spec (alist-get type org-glossary--current-export-spec))
         content cat-heading)
@@ -1025,7 +1025,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   "Produce an org-mode AST for TYPE in BACKEND defining ASSEMBLED-TERMS."
   (let* ((terms-by-letter
           (org-glossary--group-terms
-           (org-glossary--sort-plist terms :key #'string<)
+           (org-glossary--sort-plist terms :key #'string>)
            (lambda (trm) (aref (plist-get trm :key) 0))))
          (num-terms-by-letter (mapcar (lambda (trms) (length (cdr trms)))
                                       terms-by-letter))
