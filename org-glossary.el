@@ -146,6 +146,19 @@ keyword's value, or a plist of the form emitted by
 These can be set by #+print_glossary in babel :key value style."
   :type 'plist)
 
+(defcustom org-glossary-print-letter-minimums '(12 . 3)
+  "The minimum number of terms with distinct and the same letter to print letters.
+More specifically, a cons cell containing:
+- The minimum number of distinct first letters among the used terms
+- The minimum maximum number of terms with the same letter
+before the :letter-heading templates of
+`org-glossary-export-specs' should be applied.
+
+For instance, with the default value of \\=(12 . 3) the terms
+must start with at least 12 different letters, and there must be
+at least three terms that start with the same letter."
+  :type '(cons integer integer))
+
 (defcustom org-glossary-export-specs
   '((t (t :use "%t"
           :first-use "%u"
@@ -1056,8 +1069,10 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
                                       terms-by-letter))
          (export-spec (alist-get type org-glossary--current-export-spec))
          (use-letters-p
-          (and (> (apply #'+ num-terms-by-letter) 15)
-               (> (apply #'max num-terms-by-letter) 3)
+          (and (>= (apply #'+ num-terms-by-letter)
+                  (car org-glossary-print-letter-minimums))
+               (>= (apply #'max num-terms-by-letter)
+                  (cdr org-glossary-print-letter-minimums))
                (not (string-empty-p (plist-get export-spec :letter-heading))))))
     (concat
      (and (not use-letters-p)
