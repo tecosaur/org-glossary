@@ -200,6 +200,7 @@ Within each template, the following format specs are applied:
   %t the term
   %v the term value
   %k the term key
+  %K the term key nonce
   %r the term reference index (applicable to :use, :first-use, and :backref)
   %n the number of term references (i.e. max %r)
   %c the category of the term
@@ -541,6 +542,7 @@ side-effect when it is provided."
                    item-contents))))
     (list :key key
           :key-plural (unless (string-empty-p key-plural) key-plural)
+          :key-nonce (org-glossary--key-nonce key)
           :term term
           :term-plural (unless (string-empty-p plural) plural)
           :alias-for nil
@@ -588,6 +590,15 @@ side-effect when it is provided."
         (plist-put term-entry :alias-for associated-term)
         (plist-put term-entry :value (plist-get associated-term :value)))))
   terms)
+
+(defvar org-glossary--key-nonces (make-hash-table :test #'equal)
+  "The currently set key nonces.")
+
+(defun org-glossary--key-nonce (key)
+  "Return the nonce for KEY, assigning one if not already set."
+  (or (gethash key org-glossary--key-nonces)
+      (puthash key (1+ (hash-table-count org-glossary--key-nonces))
+               org-glossary--key-nonces)))
 
 ;;; Term usage
 
@@ -919,6 +930,9 @@ optional arguments:
         case-fold-search)
     (when (string-match-p "%k" template)
       (push (cons ?k (plist-get canonical-term :key)) parameters))
+    (when (string-match-p "%K" template)
+      (push (cons ?K (number-to-string (plist-get canonical-term :key-nonce)))
+            parameters))
     (when (string-match-p "%t" template)
       (push (cons ?t (funcall (if capitalized-p #'capitalize #'identity)
                               (plist-get term-entry
