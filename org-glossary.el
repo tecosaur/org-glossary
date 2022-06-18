@@ -155,10 +155,10 @@ These can be set by #+print_glossary in babel :key value style."
           :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
           :category-heading "* %c\n"
           :letter-heading "*%L*\n")
-       (glossary :heading "Glossary")
-       (acronym :heading "Acronyms"
+       (glossary :heading "* Glossary")
+       (acronym :heading "* Acronyms"
                 :first-use "%v (%u)")
-       (index :heading "Index"
+       (index :heading "* Index"
               :definition-structure "%d\\ensp{}%b\n")
        (substitution :heading ""
                      :use "%v"
@@ -1006,8 +1006,8 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
        (if (and (not (string-empty-p (plist-get export-spec :heading)))
                 (> level 0))
            (concat
-            (make-string level ?*)
-            " "
+            (and (string-match-p "^\\* " (plist-get export-spec :heading))
+                 (make-string (1- level) ?*))
             (plist-get export-spec :heading)
             "\n"
             content)
