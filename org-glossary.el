@@ -915,7 +915,8 @@ optional arguments:
  - PLURAL-P and CAPITALIZED-P affect %t and %v
  - EXTRA-PARAMETERS defines additional fields"
   (let ((parameters extra-parameters)
-        (canonical-term (or (plist-get term-entry :alias-for) term-entry)))
+        (canonical-term (or (plist-get term-entry :alias-for) term-entry))
+        case-fold-search)
     (when (string-match-p "%k" template)
       (push (cons ?k (plist-get canonical-term :key)) parameters))
     (when (string-match-p "%t" template)
