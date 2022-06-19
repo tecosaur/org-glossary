@@ -1554,22 +1554,24 @@ This should only be run as an export hook."
 (defun org-glossary--quicklookup (term-str)
   "Find the term entry reffered to by TERM-STR."
   (or (gethash term-str org-glossary--quicklookup-cache)
-      (puthash term-str
-               (or (org-glossary--find-term-entry
-                    org-glossary--terms term-str :key)
-                   (org-glossary--find-term-entry
-                    org-glossary--terms term-str :key-plural)
-                   (org-glossary--find-term-entry
-                    org-glossary--terms
-                    (concat (string (downcase (aref term-str 0)))
-                            (substring term-str 1))
-                    :key)
-                   (org-glossary--find-term-entry
-                    org-glossary--terms
-                    (concat (string (downcase (aref term-str 0)))
-                            (substring term-str 1))
-                    :key-plural))
-               org-glossary--quicklookup-cache)))
+      (and (not (string-empty-p term-str))
+           (let ((term-entry
+                  (or (org-glossary--find-term-entry
+                       org-glossary--terms term-str :key)
+                      (org-glossary--find-term-entry
+                       org-glossary--terms term-str :key-plural)
+                      (org-glossary--find-term-entry
+                       org-glossary--terms
+                       (concat (string (downcase (aref term-str 0)))
+                               (substring term-str 1))
+                       :key)
+                      (org-glossary--find-term-entry
+                       org-glossary--terms
+                       (concat (string (downcase (aref term-str 0)))
+                               (substring term-str 1))
+                       :key-plural))))
+             (puthash term-str term-entry
+                      org-glossary--quicklookup-cache)))))
 
 (defun org-glossary-update-terms ()
   "Update the currently known terms."
