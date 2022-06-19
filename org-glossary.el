@@ -1195,12 +1195,12 @@ If MARK-EXTRACTED is non-nil, extracted uses shall be marked as extracted."
          (setq region-term-uses nil)
          (dolist (use (plist-get term-entry :uses))
            (when (and (<= begin
-                          (org-element-property :begin (cdadr remaining-uses))
-                          (org-element-property :end (cdadr remaining-uses))
+                          (org-element-property :begin (cdr use))
+                          (org-element-property :end (cdr use))
                           end)
                       (push use region-term-uses)
                       mark-extracted)
-             (plist-put use :extracted t)))
+             (plist-put (cdr use) :extracted t)))
          (when region-term-uses
            (push (org-combine-plists
                   term-entry (list :uses region-term-uses))
