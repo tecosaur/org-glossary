@@ -1542,16 +1542,28 @@ This should only be run as an export hook."
                  (buffer-substring-no-properties
                   (previous-single-property-change (1+ pos) 'face)
                   (next-single-property-change pos 'face))))))
-    (format "(%s) %s %s"
-            (propertize
-             (symbol-name (plist-get term-entry :type))
-             'face 'org-table)
-            (propertize
-             (plist-get term-entry :term)
-             'face 'org-list-dt)
-            (string-trim
-             (org-element-interpret-data
-              (plist-get term-entry :value))))))
+    (let ((referenced-term
+           (org-glossary--quicklookup
+            (string-trim (substring-no-properties
+                          (org-element-interpret-data
+                           (plist-get term-entry :value)))))))
+      (format "(%s) %s %s"
+              (propertize
+               (symbol-name (plist-get (or referenced-term term-entry) :type))
+               'face 'org-table)
+              (concat
+               (propertize
+                (plist-get term-entry :term)
+                'face (if referenced-term 'font-lock-doc-face 'org-list-dt))
+               (and referenced-term
+                    (concat
+                     " ⟶ "
+                     (propertize
+                      (plist-get referenced-term :term)
+                      'face 'org-list-dt))))
+              (string-trim
+               (org-element-interpret-data
+                (plist-get (or referenced-term term-entry) :value)))))))
 
 ;;; Interaction
 
