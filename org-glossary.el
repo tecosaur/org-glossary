@@ -650,50 +650,54 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
         (start-time (float-time))
         (last-redisplay (float-time))
         terms-used element-context element-at-point)
-    (setq terms (org-glossary--strip-uses terms))
-    (org-glossary--identify-alias-terms terms)
-    (save-excursion
-      (goto-char (point-min))
-      (while (org-glossary--mrx-search-forward terms-mrx)
-        (when (> (- (float-time) last-redisplay) 0.4)
-          (let (message-log-max)
-            (message "Scanning for term usage: (%s%%)"
-                     (/ (* 100 (point)) (point-max))))
-          (sit-for 0.01)
-          (setq last-redisplay (float-time)))
-        (save-match-data
-          (setq element-at-point (org-element-at-point)
-                element-context (org-element-context element-at-point)))
-        (cond
-         ((or (org-glossary--within-definition-p element-context)
-              (eq 'headline (org-element-type element-at-point))
-              (and (eq 'keyword (org-element-type element-at-point))
-                   (not (member (org-element-property :key element-at-point)
-                                org-element-parsed-keywords))))
-          nil) ; Skip, not a valid reference.
-         ((eq 'link (org-element-type element-context))
-          (push (plist-get (org-glossary--update-link
-                            terms element-context no-modify no-number)
-                           :key)
-                terms-used))
-         ((and org-glossary-automatic
-               (memq 'link (org-element-restriction element-context)))
-          (push (plist-get (org-glossary--update-plain
-                            terms no-modify no-number)
-                           :key)
-                terms-used)))))
-    (when (> (- (float-time) start-time) 0.1)
-      (message "Scanned for term usage in buffer (took %.2f seconds)."
-               (- (float-time) start-time)))
-    (if keep-unused
-        terms
-      (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
-      (delq nil
-            (mapcar
-             (lambda (trm)
-               (when (member (plist-get trm :key) terms-used)
-                 trm))
-             terms)))))
+    (let ((register-term
+           (lambda (term-entry)
+             (push (plist-get term-entry :key) terms-used)
+             (when (plist-get term-entry :alias-for)
+               (push (plist-get (plist-get term-entry :alias-for) :key)
+                     terms-used)))))
+      (setq terms (org-glossary--strip-uses terms))
+      (org-glossary--identify-alias-terms terms)
+      (save-excursion
+        (goto-char (point-min))
+        (while (org-glossary--mrx-search-forward terms-mrx)
+          (when (> (- (float-time) last-redisplay) 0.4)
+            (let (message-log-max)
+              (message "Scanning for term usage: (%s%%)"
+                       (/ (* 100 (point)) (point-max))))
+            (sit-for 0.01)
+            (setq last-redisplay (float-time)))
+          (save-match-data
+            (setq element-at-point (org-element-at-point)
+                  element-context (org-element-context element-at-point)))
+          (cond
+           ((or (org-glossary--within-definition-p element-context)
+                (eq 'headline (org-element-type element-at-point))
+                (and (eq 'keyword (org-element-type element-at-point))
+                     (not (member (org-element-property :key element-at-point)
+                                  org-element-parsed-keywords))))
+            nil) ; Skip, not a valid reference.
+           ((eq 'link (org-element-type element-context))
+            (funcall register-term
+                     (org-glossary--update-link
+                      terms element-context no-modify no-number)))
+           ((and org-glossary-automatic
+                 (memq 'link (org-element-restriction element-context)))
+            (funcall register-term
+                     (org-glossary--update-plain
+                      terms no-modify no-number))))))
+      (when (> (- (float-time) start-time) 0.1)
+        (message "Scanned for term usage in buffer (took %.2f seconds)."
+                 (- (float-time) start-time)))
+      (if keep-unused
+          terms
+        (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
+        (delq nil
+              (mapcar
+               (lambda (trm)
+                 (when (member (plist-get trm :key) terms-used)
+                   trm))
+               terms))))))
 
 (defun org-glossary--strip-uses (terms &optional no-modify)
   "Either modify or return a copy of TERMS with all :uses set to nil.
