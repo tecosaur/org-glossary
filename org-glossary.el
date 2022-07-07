@@ -319,14 +319,18 @@ is non-nil and INCLUDE-GLOBAL nil."
      already-included)))
 
 (defun org-glossary--maybe-add-global-terms (term-getter term-set do-it-p &optional already-included)
-  "Apply TERM-GETTER to `org-glossary-global-terms' and add to TERM-SET if non-nil DO-IT-P."
+  "Apply TERM-GETTER to `org-glossary-global-terms' and add to TERM-SET if non-nil DO-IT-P.
+TERM-GETTER will be called with three arguments: the term source, t, and `already-included'."
   (if do-it-p
-      (apply #'append
-             term-set
-             (mapcar term-getter
-                     (cl-set-difference (mapcar #'org-glossary--complete-path-spec
-                                                org-glossary-global-terms)
-                                        already-included)))
+      (let ((accumulation term-set))
+        (dolist (term-source (cl-set-difference
+                              (mapcar #'org-glossary--complete-path-spec
+                                      org-glossary-global-terms)
+                              already-included))
+          (setq accumulation
+                (append accumulation
+                        (funcall term-getter term-source t already-included))))
+        accumulation)
     term-set))
 
 (defun org-glossary--get-terms-oneshot (&optional path-spec)
