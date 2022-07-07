@@ -542,10 +542,10 @@ side-effect when it is provided."
 
 (defun org-glossary--entry-from-item (item)
   "Destructively build a glossary entry from a ITEM."
-  (let* ((term-str (substring-no-properties
-                    (or (car (org-element-property :tag item))
-                        (string-trim
-                         (org-element-interpret-data
+  (let* ((term-str (string-trim
+                    (substring-no-properties
+                     (org-element-interpret-data
+                      (or (org-element-property :tag item)
                           (org-element-contents item))))))
          (keys-terms (split-string term-str "[ \t]*=[ \t]*"))
          (term-and-plural (split-string (car (last keys-terms)) "[ \t]*,[ \t]*"))
