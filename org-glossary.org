@@ -18,7 +18,7 @@ backends.
 ** Quickstart
 
 To define a glossary entry, simply place a top-level heading in the document
-titled =Glossary= or =Acronym= and therein define terms using an Org definition
+titled =Glossary= or =Acronyms= and therein define terms using an Org definition
 list, like so:
 
 #+begin_example
@@ -78,17 +78,20 @@ abstraction like so:
 3. Generate a definition section for all used terms, linking to the uses
 
 Out of the box, four glossary-like structures are configured:
-+ Glossary :: =f($term) = linktodef($term)=
-+ Acronyms :: =f($term) = linktodef($term)= except for the first use which is
-  =$term ($definition)=.
-+ Index :: =f($term) = $term=
-+ Text Substitutions :: =f($term) = $definition=
++ Glossary :: The term is transformed to the same text, but linking to the
+  definition.
++ Acronyms :: The first use of the term adds the definition in parentheses, and
+  subsequent uses simply link to the definition (behaving the same as glossary
+  terms).
++ Index :: The term is unchanged (the entire purpose of the index is achieved via
+  step 3. alone).
++ Text Substitutions :: The term is replaced with its definition.
 
 For more details on how this works, see [[Structure of an export template set]].
 
 There is a little special-cased behaviour for indexes (usage detection) and text
 substitution (fontification), but it is kept to a minimum and ideally will be
-entirely generalised in future.
+removed via generalisation in future.
 
 * Usage
 ** Defining terms

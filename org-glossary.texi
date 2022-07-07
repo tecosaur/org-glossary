@@ -83,7 +83,7 @@ backends.
 @section Quickstart
 
 To define a glossary entry, simply place a top-level heading in the document
-titled @samp{Glossary} or @samp{Acronym} and therein define terms using an Org definition
+titled @samp{Glossary} or @samp{Acronyms} and therein define terms using an Org definition
 list, like so:
 
 @example
@@ -157,21 +157,24 @@ Generate a definition section for all used terms, linking to the uses
 Out of the box, four glossary-like structures are configured:
 @table @asis
 @item Glossary
-@samp{f($term) = linktodef($term)}
+The term is transformed to the same text, but linking to the
+definition.
 @item Acronyms
-@samp{f($term) = linktodef($term)} except for the first use which is
-@samp{$term ($definition)}.
+The first use of the term adds the definition in parentheses, and
+subsequent uses simply link to the definition (behaving the same as glossary
+terms).
 @item Index
-@samp{f($term) = $term}
+The term is unchanged (the entire purpose of the index is achieved via
+step 3. alone).
 @item Text Substitutions
-@samp{f($term) = $definition}
+The term is replaced with its definition.
 @end table
 
 For more details on how this works, see @ref{Structure of an export template set}.
 
 There is a little special-cased behaviour for indexes (usage detection) and text
 substitution (fontification), but it is kept to a minimum and ideally will be
-entirely generalised in future.
+removed via generalisation in future.
 
 @node Usage
 @chapter Usage
