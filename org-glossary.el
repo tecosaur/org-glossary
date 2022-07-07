@@ -54,6 +54,8 @@
 ;;
 ;; DONE support for term aliases
 ;;
+;; TODO include used term aliases in generated glossary
+;;
 ;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
