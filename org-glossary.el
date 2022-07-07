@@ -1564,9 +1564,11 @@ This should only be run as an export hook."
                      (propertize
                       (plist-get referenced-term :term)
                       'face 'org-list-dt))))
-              (string-trim
-               (org-element-interpret-data
-                (plist-get (or referenced-term term-entry) :value)))))))
+              (replace-regexp-in-string
+               "\s?\n\s*" " " ; flatten newline indentation
+               (string-trim
+                (org-element-interpret-data
+                 (plist-get (or referenced-term term-entry) :value))))))))
 
 ;;; Interaction
 
