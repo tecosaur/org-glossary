@@ -712,7 +712,7 @@ Behaviour is set according to NO-MODIFY."
 (defvar org-glossary--mrx-last-tag nil
   "The tag of the last multi-rx matched by `org-glossary--multi-rx'.")
 
-(defun org-glossary--mrx-search-forward (tagged-patterns &optional limit)
+(defun org-glossary--mrx-search-forward (tagged-patterns &optional limit case-insensitive)
   "Find the closest matching pattern in TAGGED-PATTERNS before LIMIT.
 Each entry in the list TAGGED-PATTERNS should be of the form:
   (TAG . STRINGS)
@@ -720,10 +720,13 @@ Each entry in the list TAGGED-PATTERNS should be of the form:
 In the case of two equally close matches from TAGGED-PATTERNS,
 the longest match will be used.
 
+`case-fold-search' is locally bound to CASE-INSENSITIVE.
+
 This is necessitated by problems when trying to apply
 `regexp-opt' to many items, which can trigger:
   Lisp error: (invalid-regexp \"Regular expression too big\")"
   (let ((match-start most-positive-fixnum) (match-stop -1)
+        (case-fold-search case-insensitive)
         the-match tag)
     (dolist (t-pat tagged-patterns)
       (save-excursion
