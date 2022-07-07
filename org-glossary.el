@@ -1583,32 +1583,43 @@ This should only be run as an export hook."
   (unless (derived-mode-p 'org-mode)
     (user-error "You need to be using `org-mode' to use org-glossary."))
   (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
-                               org-glossary--terms))
-        current-terms added-terms removed-terms)
+                               org-glossary--terms)))
     (setq org-glossary--terms (org-glossary--get-terms-cached)
           org-glossary--term-mrx
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal))
-    (setq current-terms (mapcar (lambda (trm) (plist-get trm :term))
-                                org-glossary--terms)
-          added-terms (cl-set-difference current-terms initial-terms :test #'string=)
-          removed-terms (cl-set-difference initial-terms current-terms :test #'string=))
-    (when (or added-terms removed-terms)
-      (message "%s"
-               (concat
-                "org-glossary: "
-                (and added-terms
-                     (format "%s term%s added"
-                             (length added-terms)
-                             (if (> (length added-terms) 1) "s" "")))
-                (and added-terms removed-terms ", ")
-                (and removed-terms
-                     (format "%s term%s removed"
-                             (length removed-terms)
-                             (if (> (length removed-terms) 1) "s" "")))))))
+    (when (called-interactively-p)
+      (org-glossary--term-status-message
+       (mapcar (lambda (trm) (plist-get trm :term))
+               org-glossary--terms)
+       initial-terms)))
   (when org-glossary-mode
     (org-with-wide-buffer
      (font-lock-flush))))
+
+(defun org-glossary--term-status-message (current-terms &optional initial-terms)
+  "Emit a status mesage, based on CURRENT-TERMS and INITIAL-TERMS."
+  (let ((added-terms (cl-set-difference current-terms initial-terms :test #'string=))
+        (removed-terms (cl-set-difference initial-terms current-terms :test #'string=)))
+    (message "%s"
+             (concat
+              (propertize "org-glossary" 'face 'bold)
+              ": "
+              (propertize (number-to-string (length current-terms))
+                          'face 'warning)
+              " registered terms"
+              (and (or added-terms removed-terms) ", ")
+              (and added-terms
+                   (format "%s term%s added"
+                           (propertize (number-to-string (length added-terms))
+                                       'face 'success)
+                           (if (> (length added-terms) 1) "s" "")))
+              (and added-terms removed-terms ", ")
+              (and removed-terms
+                   (format "%s term%s removed"
+                           (propertize (number-to-string (length removed-terms))
+                                       'face 'error)
+                           (if (> (length removed-terms) 1) "s" "")))))))
 
 (defun org-glossary--select-term (terms)
   "Select a term entry from TERMS."
