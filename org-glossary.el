@@ -1463,8 +1463,9 @@ This should only be run as an export hook."
           '((org-glossary--fontify-find-next
              (0 '(face org-glossary-term
                        help-echo org-glossary--term-help-echo
+                       mouse-face (:inverse-video t)
                        keymap (keymap
-                               (follow-link . org-glossary-goto-term-definition)
+                               (follow-link . mouse-face)
                                (mouse-2 . org-glossary-goto-term-definition))) t)))))
   per-term-p)
 
@@ -1528,8 +1529,9 @@ This should only be run as an export hook."
                           'org-glossary-term))))
       `(help-echo
         org-glossary--term-help-echo
+        mouse-face (:inverse-video t)
         keymap (keymap
-                (follow-link . org-glossary-goto-term-definition)
+                (follow-link . mouse-face)
                 (mouse-2 . org-glossary-goto-term-definition)))))))
 
 (defun org-glossary--term-help-echo (_window object pos)
