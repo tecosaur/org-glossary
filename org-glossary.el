@@ -682,8 +682,9 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                             terms no-modify no-number)
                            :key)
                 terms-used)))))
-    (message "Scanned for term usage in buffer (took %.2f seconds)."
-             (- (float-time) start-time))
+    (when (> (- (float-time) start-time) 0.1)
+      (message "Scanned for term usage in buffer (took %.2f seconds)."
+               (- (float-time) start-time)))
     (if keep-unused
         terms
       (setq terms-used (cl-delete-duplicates (delq nil terms-used) :test #'string=))
