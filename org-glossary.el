@@ -54,7 +54,7 @@
 ;;
 ;; DONE support for term aliases
 ;;
-;; TODO include used term aliases in generated glossary
+;; DONE include used term aliases in generated glossary
 ;;
 ;; DONE option to canonicalise aliases
 ;;
@@ -176,7 +176,8 @@ at least three terms that start with the same letter."
           :category-heading "* %c\n"
           :letter-heading "*%L*\n"
           :definition-structure-preamble ""
-          :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n")
+          :definition-structure "*%d*\\emsp{}%v\\ensp{}%b\n"
+          :alias-value "See [[gls:0:%k]].")
        (glossary :heading "* Glossary")
        (acronym :heading "* Acronyms"
                 :first-use "%v (%u)")
@@ -215,16 +216,19 @@ The following term forms as recognised for all template specs:
   :first-use
   :backref
   :definition
-There are also two special forms for the default template spec:
+There are also four special forms for the default template spec:
   :definition-structure
+  :category-heading
   :letter-heading
+  :alias-value
 
 Within each template, the following format specs are applied:
   %t the term
   %v the term value
   %k the term key
   %K the term key nonce
-  %r the term reference index (applicable to :use, :first-use, and :backref)
+  %r the term reference index (applicable to :use, :first-use,
+       :backref, and :alias-value)
   %n the number of term references (i.e. max %r)
   %c the category of the term
 
@@ -232,7 +236,7 @@ In :use and :first-use, %t/%v are pluralised and capitalised as
 appropriate. The :first-use template can also use %u to refer to
 the value of :use.
 
-The default backend defines three special forms, expanded at the
+The default backend defines four special forms, expanded at the
 start of the export process:
 - The :definition-structure form is used as the template for the
   whole definition entry, and uses the format specs %d, %v, %b
@@ -242,6 +246,9 @@ start of the export process:
   lower and upper case respectively.
 - The :category-heading form is inserted before a block of terms
   all assigned a particular category, given by the format spec %c.
+- The :alias-value form is used as the value (%v) when expanding an
+  alias definition. It is expanded using the specs of the canonical
+  term.
 
 Instead of a format string, one can also provide a function as a
 template spec so long as it matches the function signature of
@@ -1050,7 +1057,8 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
           (org-glossary--sort-plist
            (cl-remove-if
             (lambda (trm)
-              (or (not (plist-get trm :uses)) ; This occurs when `trm' is an alias.
+              (or (and (not (plist-get trm :uses)) ; Occurs when `trm' is an alias.
+                       org-glossary-canonicalise-aliases)
                   (and (not duplicate-mentions)
                        (plist-get trm :extracted))))
             terms)
@@ -1152,17 +1160,23 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (org-glossary--export-instance
    backend nil term-entry :definition-structure
    nil nil nil
-   `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
-     (?v . ,(string-trim (org-element-interpret-data
-                          (plist-get term-entry :value))))
-     (?b . ,(mapconcat
-             (lambda (use)
-               (format "[[glsuse:%d:%s]]"
-                       (car use) (plist-get term-entry :key)))
-             (cl-sort
-              (plist-get term-entry :uses)
-              #'< :key #'car)
-             ", ")))))
+   (if (plist-get term-entry :alias-for)
+       `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
+         (?v . ,(org-glossary--export-instance
+                 backend nil (plist-get term-entry :alias-for)
+                 :alias-value 0))
+         (?b . ""))
+     `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
+       (?v . ,(string-trim (org-element-interpret-data
+                            (plist-get term-entry :value))))
+       (?b . ,(mapconcat
+               (lambda (use)
+                 (format "[[glsuse:%d:%s]]"
+                         (car use) (plist-get term-entry :key)))
+               (cl-sort
+                (plist-get term-entry :uses)
+                #'< :key #'car)
+               ", "))))))
 
 (defun org-glossary--group-terms (terms predicate &optional include)
   "Group TERMS according to PREDICATE, and only INCLUDE certain groups (if non-nil)."
