@@ -554,7 +554,7 @@ instead make use of ~setcdr~ or ~plist-put~ like so:
 (let ((latex-dspec (alist-get t (alist-get 'latex org-glossary-export-specs))))
   (plist-put latex-dspec :backref "gls-%k-use-%r")
   (plist-put latex-dspec :definition-structure
-                         "*%d*\\emsp{}%v\\ensp{}@@latex:\\labelcpageref{@@%b@@latex:}@@"))
+                         "*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum %n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n"))
 #+end_example
 
 This allows for any change in other backends or the defaults you're not

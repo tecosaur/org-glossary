@@ -236,6 +236,13 @@ The literal content of :definition-structure-preamble is inserted
 before the first :definition-structure in each block of
 definitions.
 
+If using cleverref with LaTeX, making use of the \\labelcpageref
+command like so is recommended:
+  (let ((latex-dspec (alist-get t (alist-get 'latex org-glossary-export-specs))))
+    (plist-put latex-dspec :backref \"gls-%k-use-%r\")
+    (plist-put latex-dspec :definition-structure
+               \"*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum %n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n\"))
+
 TODO rewrite for clarity."
   :type '(alist :key-type (symbol :tag "Backend")
                 :value-type
