@@ -1735,7 +1735,8 @@ If TERM-REF is not given, the current point will be used."
       (if (bufferp def-file)
           (switch-to-buffer def-file))
       (find-file def-file))
-    (goto-char (plist-get term-entry :definition-pos))))
+    (goto-char (plist-get term-entry :definition-pos))
+    term-entry))
 
 (defun org-glossary-insert-term-reference ()
   "Pick a term, and insert a reference to it."
