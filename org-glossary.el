@@ -1316,6 +1316,10 @@ the :consume parameter extracted from KEYWORD."
   "Export a Glspl link to term index-term with BACKEND."
   (org-glossary--link-export backend info index-term description t t))
 
+(defconst org-glossary--index-stub-description
+  "<org-glossary-index-stub>"
+  "Usage description value that should be treated as an invisible reference.")
+
 (defun org-glossary--link-export (backend info index-term description &optional plural-p capitalized-p)
   "Export a link to TERM with BACKEND, respecting PLURAL-P and CAPITALIZED-P."
   (if-let ((index (if (seq-contains-p index-term ?:)
@@ -1327,7 +1331,7 @@ the :consume parameter extracted from KEYWORD."
        backend info term-entry (if (= 1 index) :first-use :use)
        index plural-p capitalized-p
        (and (stringp description)
-            (string= description "org-glossary-index-stub")
+            (string= description org-glossary--index-stub-description)
             '((?t . "") (?u . "%t"))))
     (funcall (if capitalized-p #'capitalize #'identity)
              (funcall (if plural-p org-glossary-plural-function #'identity)
@@ -1448,7 +1452,9 @@ This should only be run as an export hook."
         (when (save-match-data
                 (looking-back "^[ \t]*#\\+[cfkptv]?index:[ \t]*"
                               (line-beginning-position)))
-          (replace-match "[[gls:\\1][org-glossary-index-stub]]")))))
+          (replace-match
+           (format "[[gls:\\1][%s]]"
+                   org-glossary--index-stub-description))))))
   (let ((used-terms (org-glossary-apply-terms org-glossary--terms))
         keyword print-glossary-p)
     (save-excursion
