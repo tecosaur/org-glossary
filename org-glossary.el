@@ -1331,8 +1331,8 @@ the :consume parameter extracted from KEYWORD."
        backend info term-entry (if (= 1 index) :first-use :use)
        index plural-p capitalized-p
        (and (stringp description)
-            (string= description org-glossary--index-stub-description)
-            '((?t . "") (?u . "%t"))))
+            `((?t . ,(if (string= description org-glossary--index-stub-description)
+                         "" description)))))
     (funcall (if capitalized-p #'capitalize #'identity)
              (funcall (if plural-p org-glossary-plural-function #'identity)
                       trm))))
