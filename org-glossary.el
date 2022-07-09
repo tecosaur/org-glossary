@@ -1636,6 +1636,14 @@ This should only be run as an export hook."
                 (org-element-interpret-data
                  (plist-get (or referenced-term term-entry) :value))))))))
 
+;;; Completion
+
+;; The sole purpose of `org-options-keywords' is to supply candidates
+;; in org-pcomplete.el, so we may as well add our new keywords to the list.
+
+(add-to-list 'org-options-keywords "GLOSSARY_SOURCES:")
+(add-to-list 'org-options-keywords "PRINT_GLOSSARY:")
+
 ;;; Interaction
 
 (defvar-local org-glossary--quicklookup-cache (make-hash-table :test #'equal)
