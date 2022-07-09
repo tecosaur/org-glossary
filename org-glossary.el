@@ -167,18 +167,18 @@ at least three terms that start with the same letter."
                      :definition-structure ""
                      :category-heading ""
                      :letter-heading ""))
-    (latex (t :use "\\hyperlink{gls-%k}{\\label{gls-%k-use-%r}%t}"
-              :definition "\\hypertarget{gls-%k}{%t}"
-              :backref "\\pageref{gls-%k-use-%r}"))
-    (html (t :use "<a class=\"org-gls\" href=\"#gls.%k\" id=\"glsr.%k.%r\">%t</a>"
-             :definition "<span class=\"org-glsdef\" id=\"gls.%k\">%t</span>"
-             :backref "<a class=\"org-glsdef\" href=\"#glsr.%k.%r\">%r</a>"))
+    (latex (t :use "\\hyperlink{gls-%K}{\\label{gls-%K-use-%r}%t}"
+              :definition "\\hypertarget{gls-%K}{%t}"
+              :backref "\\pageref{gls-%K-use-%r}"))
+    (html (t :use "<a class=\"org-gls\" href=\"#gls.%K\" id=\"glsr.%K.%r\">%t</a>"
+             :definition "<span class=\"org-glsdef\" id=\"gls.%K\">%t</span>"
+             :backref "<a class=\"org-glsdef\" href=\"#glsr.%K.%r\">%r</a>"))
     (ascii (t :definition-structure "*%d* %v [%n uses]\n")
            (index :definition-structure "%d [%n uses]\n"))
-    (org (t :use "<<gr;%k;%r>>[[g;%k][%t]]"
-            :backref "[[gr;%k;%r][%r]]"
-            :definition-structure "- <<g;%k>>%t :: %v\\ensp{}%b")
-         (index :definition-structure "- <<g;%k>>%t\\ensp{}%b")))
+    (org (t :use "<<gr;%K;%r>>[[g;%K][%t]]"
+            :backref "[[gr;%K;%r][%r]]"
+            :definition-structure "- <<g;%K>>%t :: %v\\ensp{}%b")
+         (index :definition-structure "- <<g;%K>>%t\\ensp{}%b")))
   "Alist of export backends and template set alists.
 Each template set alist has the term type (e.g. acronym) as the
 car, and the templates set as the cdr.
