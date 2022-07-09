@@ -471,7 +471,10 @@ a plist of the form:
 (defun org-glossary--get-terms-cached (&optional path-spec no-global already-included)
   "Obtain all known terms in the current buffer, using the cache.
 `org-glossary-global-terms' will be used unless PATH-SPEC
-is non-nil and INCLUDE-GLOBAL nil."
+is non-nil and INCLUDE-GLOBAL nil.
+
+If a source that could have contributed to the quicklookup cache is updated, then
+the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
   (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (term-source-cached (assoc path-spec org-glossary--terms-cache))
          (cached-path (plist-get (cdr term-source-cached) :path))
@@ -496,6 +499,11 @@ is non-nil and INCLUDE-GLOBAL nil."
               (cdar (push (cons path-spec
                                 (org-glossary--get-terms-oneshot path-spec))
                           org-glossary--terms-cache)))))
+    ;; If updating a source that could already be part of the quicklookup cache,
+    ;; then clear the quicklookup cache to prevent outdated entries from persisting.
+    (when (and (not (hash-table-empty-p org-glossary--quicklookup-cache))
+               term-source-cached (not cache-valid))
+      (setq org-glossary--quicklookup-cache (make-hash-table :test #'equal)))
     (push path-spec already-included)
     (org-glossary--maybe-add-global-terms
      #'org-glossary--get-terms-cached
