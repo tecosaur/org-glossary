@@ -50,6 +50,7 @@ Defining terms
 * Placement of definitions::
 * Basic definitions::
 * Advanced definitions::
+* Alias terms::
 * Categorisation::
 
 Export configuration
@@ -193,6 +194,7 @@ removed via generalisation in future.
 * Placement of definitions::
 * Basic definitions::
 * Advanced definitions::
+* Alias terms::
 * Categorisation::
 @end menu
 
@@ -301,6 +303,34 @@ form no plural form will be generated (it will be treated as a @emph{singularia
 tantum}). The same behaviour occurs with ``glasses'', and while it is a @emph{plurale
 tantum} internally it will be represented as a @emph{singularia tantum}, but the
 behaviour is identical and so this is fine.
+
+@node Alias terms
+@subsection Alias terms
+
+Sometimes a term may be known by multiple names. Such a situation is supported
+by the use of ``alias terms'', who's definition is simply the key of the canonical
+term.
+
+This is best illustrated through an example, for which we will visit the field
+of molecular biology.
+
+@example
+- beta sheet :: Common structural motif in proteins in which different sections
+  of the polypeptide chain run alongside each other, joined together by hydrogen
+  bonding between atoms of the polypeptide backbone.
+@end example
+
+The beta sheet may also be referred to using the greek letter β instead of
+``beta'', or as the ``beta pleated sheet''. We can support these variants like so:
+
+@example
+- \beta sheet :: beta sheet
+- beta pleated sheed :: beta sheet
+- \beta-pleated sheet :: beta sheet
+@end example
+
+Since the definition of each of these terms is an exact match for ``beta sheet'',
+they will be recognised as an alias for that term.
 
 @node Categorisation
 @subsection Categorisation
