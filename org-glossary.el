@@ -1362,8 +1362,11 @@ the :consume parameter extracted from KEYWORD."
       (let ((capitalised-term
              (concat (upcase (substring (plist-get term-entry :term) 0 1))
                      (substring (plist-get term-entry :term) 1))))
-        (org-glossary--export-instance backend info term-entry :definition
-                                       nil nil nil `((?t . ,capitalised-term))))
+        (org-glossary--export-instance
+         backend info term-entry :definition nil nil nil
+         `((?t . ,capitalised-term)
+           (?k . ,(plist-get term-entry :key))
+           (?K . ,(number-to-string (plist-get term-entry :key-nonce))))))
     key))
 
 (defun org-glossary--link-export-glsuse (index-term _desc backend info)
