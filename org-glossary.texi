@@ -48,6 +48,7 @@ Usage
 Defining terms
 
 * Placement of definitions::
+* External definition sources::
 * Basic definitions::
 * Advanced definitions::
 * Alias terms::
@@ -192,6 +193,7 @@ removed via generalisation in future.
 
 @menu
 * Placement of definitions::
+* External definition sources::
 * Basic definitions::
 * Advanced definitions::
 * Alias terms::
@@ -217,10 +219,41 @@ in the document. Note that when using subtree export and non-nil
 @code{org-glossary-toplevel-only}, only level-1 headings in the widened document will
 be recognised (i.e. it behaves the same as non-subtree export).
 
+@node External definition sources
+@subsection External definition sources
+
 Org Glossary supports searching for term definitions in other @samp{#+include}d files,
 respecting the various restrictions such as headings and line number ranges. You
 may also specify include paths providing definitions that should be globally
 available via @code{org-glossary-global-terms}.
+
+If you maintain a set of common term sources you may want to use, instead of
+@samp{#+include}ing them, you can make use of the convenience keyword
+@samp{#+glossary_sources}.
+
+The value of @samp{#+glossary_sources} is split on spaces and to form a list of
+locations. Each location is appended to @code{org-glossary-collection-root} to form the
+fully qualified location. These locations are then @samp{#+include}d.
+
+For example, if @code{org-glossary-collection-root} is set to a folder where a number
+of individual definition files are places, one could then conveniently use a few with:
+
+@example
+#+glossary_sources: abbrevs physics.org::*Quantum foo bar.org
+@end example
+
+This would be equivalent to:
+
+@example
+#+include: COLLECTION-ROOT/abbrevs.org
+#+include: COLLECTION-ROOT/physics.org::*Quantum
+#+include: COLLECTION-ROOT/foo.org
+#+include: COLLECTION-ROOT/bar.org
+@end example
+
+You could also set to an individual file with the beginning of a heading
+specification, say @code{file.org::*}. This would allow you to have all the terms
+defined in one file and include groups by heading.
 
 @node Basic definitions
 @subsection Basic definitions

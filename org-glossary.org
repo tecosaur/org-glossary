@@ -113,10 +113,40 @@ in the document. Note that when using subtree export and non-nil
 ~org-glossary-toplevel-only~, only level-1 headings in the widened document will
 be recognised (i.e. it behaves the same as non-subtree export).
 
+*** External definition sources
+
 Org Glossary supports searching for term definitions in other =#+include=​d files,
 respecting the various restrictions such as headings and line number ranges. You
 may also specify include paths providing definitions that should be globally
 available via ~org-glossary-global-terms~.
+
+If you maintain a set of common term sources you may want to use, instead of
+=#+include=​ing them, you can make use of the convenience keyword
+=#+glossary_sources=.
+
+The value of =#+glossary_sources= is split on spaces and to form a list of
+locations. Each location is appended to ~org-glossary-collection-root~ to form the
+fully qualified location. These locations are then =#+include=​d.
+
+For example, if ~org-glossary-collection-root~ is set to a folder where a number
+of individual definition files are places, one could then conveniently use a few with:
+
+#+begin_example
+,#+glossary_sources: abbrevs physics.org::*Quantum foo bar.org
+#+end_example
+
+This would be equivalent to:
+
+#+begin_example
+,#+include: COLLECTION-ROOT/abbrevs.org
+,#+include: COLLECTION-ROOT/physics.org::*Quantum
+,#+include: COLLECTION-ROOT/foo.org
+,#+include: COLLECTION-ROOT/bar.org
+#+end_example
+
+You could also set to an individual file with the beginning of a heading
+specification, say ~file.org::*~. This would allow you to have all the terms
+defined in one file and include groups by heading.
 
 *** Basic definitions
 
