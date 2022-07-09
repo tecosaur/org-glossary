@@ -19,25 +19,6 @@
 ;;
 ;;; Plan:
 ;;
-;; DONE extract term definitions from curent document
-;;
-;; DONE identify term references in the document
-;;
-;; DONE turn term references into numbered links
-;;
-;; DONE generate glossary section etc. based on used terms
-;;
-;; DONE add exporters for the glossary etc. links
-;;
-;; DONE make the export formatting/style customisable
-;;
-;; DONE load terms from #+include'd files
-;;
-;; DONE support source collections
-;;
-;; DONE fontification of terms
-;;
-;; DONE jump to definition, and
 ;; TODO jump to usages
 ;;
 ;; TODO support term-links with multiple targets
@@ -47,20 +28,6 @@
 ;;
 ;; TODO M-x org-glossary-find-expanded-terms
 ;; this would be primaraly useful for acronyms.
-;;
-;; DONE org-glossary-global-terms
-;;
-;; DONE M-x org-glossary-create-definition
-;;
-;; DONE support named definition sections
-;;
-;; DONE support for term aliases
-;;
-;; DONE include used term aliases in generated glossary
-;;
-;; DONE option to canonicalise aliases
-;;
-;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
 ;; in the file, like org-toc.?
