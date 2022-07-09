@@ -1353,7 +1353,11 @@ the :consume parameter extracted from KEYWORD."
 
 (defun org-glossary--link-export-glsdef (key _ backend info)
   (if-let ((term-entry (org-glossary--quicklookup key)))
-      (org-glossary--export-instance backend info term-entry :definition)
+      (let ((capitalised-term
+             (concat (upcase (substring (plist-get term-entry :term) 0 1))
+                     (substring (plist-get term-entry :term) 1))))
+        (org-glossary--export-instance backend info term-entry :definition
+                                       nil nil nil `((?t . ,capitalised-term))))
     key))
 
 (defun org-glossary--link-export-glsuse (index-term _desc backend info)
