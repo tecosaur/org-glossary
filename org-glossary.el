@@ -225,9 +225,8 @@ start of the export process:
   lower and upper case respectively.
 - The :category-heading form is inserted before a block of terms
   all assigned a particular category, given by the format spec %c.
-- The :alias-value form is used as the value (%v) when expanding an
-  alias definition. It is expanded using the specs of the canonical
-  term.
+- The :alias-value form is used as the value (%v) when expanding an alias
+  definition. Most other values are inherited from the canonical form.
 
 Instead of a format string, one can also provide a function as a
 template spec so long as it matches the function signature of
