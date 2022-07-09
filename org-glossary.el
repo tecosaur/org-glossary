@@ -375,7 +375,9 @@ TERM-GETTER will be called with three arguments: the term source, t, and `alread
           :terms (org-glossary--extract-terms parse-tree)
           :included
           (mapcar
-           #'org-glossary--parse-include-value
+           (lambda (location)
+             (org-glossary--parse-include-value
+              location (file-name-directory (plist-get path-spec :file))))
            (org-element-map parse-tree 'keyword
              (lambda (kwd)
                (when (string= "INCLUDE" (org-element-property :key kwd))
