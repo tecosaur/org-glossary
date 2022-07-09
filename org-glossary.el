@@ -1013,7 +1013,7 @@ optional arguments:
             parameters))
     (when (string-match-p "%n" template)
       (push (cons ?n (number-to-string
-                      (length (plist-get canonical-term :uses))))
+                      (length (plist-get term-entry :uses))))
             parameters))
     (when (string-match-p "%c" template)
       (push (cons ?c (plist-get canonical-term :category))
