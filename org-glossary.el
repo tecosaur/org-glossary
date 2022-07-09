@@ -56,7 +56,7 @@
 ;;
 ;; TODO include used term aliases in generated glossary
 ;;
-;; TODO option to canonicalise aliases
+;; DONE option to canonicalise aliases
 ;;
 ;; DONE support #+print_glossary: :terms glossary acronyms :level N :only-contents nil :consume t
 ;;
@@ -124,6 +124,10 @@ If nil, they will be recognised anywhere in the document."
 (defcustom org-glossary-plural-function #'org-glossary-english-plural
   "A function which generates the plural form of a word."
   :type 'function)
+
+(defcustom org-glossary-canonicalise-aliases nil
+  "Whether aliases should be canonicalised."
+  :type 'boolean)
 
 (defcustom org-glossary-group-ui t
   "Group term definitions by type.
@@ -983,6 +987,8 @@ optional arguments:
   (let ((parameters extra-parameters)
         (canonical-term (or (plist-get term-entry :alias-for) term-entry))
         case-fold-search)
+    (when org-glossary-canonicalise-aliases
+      (setq term-entry canonical-term))
     (when (string-match-p "%k" template)
       (push (cons ?k (plist-get canonical-term :key)) parameters))
     (when (string-match-p "%K" template)
