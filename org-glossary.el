@@ -571,7 +571,11 @@ side-effect when it is provided."
          (case-fold-search nil)
          (sentancecase-to-lowercase
           (lambda (word)
-            (if (string-match-p "^[[:upper:]][^[:upper:]]+$" word)
+            (if (or (string-match-p "^[[:upper:]][^[:space:]][^[:upper:]]+$" word)
+                    ;; NOTE This following rule makes sense, but unfortunately is
+                    ;; english-only. It would be good to support a similar case in
+                    ;; more languages at some point.
+                    (string-match-p "^\\(?:A\\|An\\)[[:space:]][^[:upper:]]+$" word))
                 (concat (string (downcase (aref word 0))) (substring word 1))
               word))))
     (list :key (funcall sentancecase-to-lowercase key)
