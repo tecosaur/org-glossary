@@ -33,6 +33,8 @@
 ;;
 ;; DONE load terms from #+include'd files
 ;;
+;; TODO support style collections
+;;
 ;; DONE fontification of terms
 ;;
 ;; DONE jump to definition, and
