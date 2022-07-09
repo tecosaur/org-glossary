@@ -33,7 +33,7 @@
 ;;
 ;; DONE load terms from #+include'd files
 ;;
-;; TODO support style collections
+;; DONE support source collections
 ;;
 ;; DONE fontification of terms
 ;;
@@ -145,6 +145,16 @@ Each term should either be a string interpreted as an #+include
 keyword's value, or a plist of the form emitted by
 `org-glossary--parse-include-value'."
   :type '(list (choice string plist)))
+
+(defcustom org-glossary-collection-root nil
+  "A base path prefixed to any per-document glossary sources.
+If this is set to a directory, ensure that you include the trailing slash."
+  :type '(choice (const nil) string))
+
+(defvar-local org-glossary--extra-term-sources nil
+  "A list of locations outside the current document that should be sourced from.
+This is constructed using `org-glossary--get-extra-term-sources'.
+See its docstring for more information.")
 
 (defcustom org-glossary-default-print-parameters
   '(:type (glossary acronym index)
@@ -318,31 +328,32 @@ Requires `org-glossary-fontify-types-differently' to be non-nil."
 
 ;;; Obtaining term definitions
 
-(defun org-glossary--get-terms (&optional path-spec no-global already-included)
+(defun org-glossary--get-terms (&optional path-spec no-extra-sources already-included)
   "Obtain all known terms in the current buffer.
-`org-glossary-global-terms' will be used unless PATH-SPEC
-is non-nil and INCLUDE-GLOBAL nil."
+Terms from `org-glossary--extra-term-sources' will be added
+unless PATH-SPEC is non-nil and NO-EXTRA-SOURCES nil."
   (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (term-source (org-glossary--get-terms-oneshot path-spec)))
     (push path-spec already-included)
-    (org-glossary--maybe-add-global-terms
+    (org-glossary--maybe-add-extra-terms
      #'org-glossary--get-terms
      (apply #'append
             (plist-get term-source :terms)
             (mapcar (lambda (p) (org-glossary--get-terms p t already-included))
                     (cl-set-difference (plist-get term-source :included)
                                        already-included)))
-     (not no-global)
+     (not no-extra-sources)
      already-included)))
 
-(defun org-glossary--maybe-add-global-terms (term-getter term-set do-it-p &optional already-included)
-  "Apply TERM-GETTER to `org-glossary-global-terms' and add to TERM-SET if non-nil DO-IT-P.
+(defun org-glossary--maybe-add-extra-terms (term-getter term-set do-it-p &optional already-included)
+  "Apply TERM-GETTER to extra term sources and add to TERM-SET if non-nil DO-IT-P.
+The extra terms sources are the elements of `org-glossary--extra-term-sources'.
 TERM-GETTER will be called with three arguments: the term source, t, and `already-included'."
   (if do-it-p
       (let ((accumulation term-set))
         (dolist (term-source (cl-set-difference
                               (mapcar #'org-glossary--complete-path-spec
-                                      org-glossary-global-terms)
+                                      org-glossary--extra-term-sources)
                               already-included))
           (setq accumulation
                 (append accumulation
@@ -485,10 +496,10 @@ a plist of the form:
    :terms TERM-LIST
    :included LIST-OF-PATH-SPECS)")
 
-(defun org-glossary--get-terms-cached (&optional path-spec no-global already-included)
+(defun org-glossary--get-terms-cached (&optional path-spec no-extra-sources already-included)
   "Obtain all known terms in the current buffer, using the cache.
-`org-glossary-global-terms' will be used unless PATH-SPEC
-is non-nil and INCLUDE-GLOBAL nil.
+`org-glossary--extra-term-sources' will be used unless PATH-SPEC
+is non-nil and NO-EXTRA-SOURCES nil.
 
 If a source that could have contributed to the quicklookup cache is updated, then
 the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
@@ -522,14 +533,14 @@ the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
                term-source-cached (not cache-valid))
       (setq org-glossary--quicklookup-cache (make-hash-table :test #'equal)))
     (push path-spec already-included)
-    (org-glossary--maybe-add-global-terms
+    (org-glossary--maybe-add-extra-terms
      #'org-glossary--get-terms-cached
      (apply #'append
             (plist-get term-source :terms)
             (mapcar (lambda (p) (org-glossary--get-terms-cached p t already-included))
                     (cl-set-difference (plist-get term-source :included)
                                        already-included)))
-     (not no-global)
+     (not no-extra-sources)
      already-included)))
 
 (defun org-glossary-clear-cache ()
@@ -1659,7 +1670,8 @@ This should only be run as an export hook."
     (user-error "You need to be using `org-mode' to use org-glossary."))
   (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
                                org-glossary--terms)))
-    (setq org-glossary--terms (org-glossary--get-terms-cached)
+    (setq org-glossary--extra-term-sources (org-glossary--get-extra-term-sources)
+          org-glossary--terms (org-glossary--get-terms-cached)
           org-glossary--term-mrx
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal))
@@ -1672,17 +1684,53 @@ This should only be run as an export hook."
     (org-with-wide-buffer
      (font-lock-flush))))
 
+(defun org-glossary--get-extra-term-sources ()
+  "Identify all applicable sources of extra terms for the current buffer.
+This combines locations listed in `org-glossary-global-terms' with
+local sources specified with \"#+glossary_sources: LOCATIONS\".
+
+LOCATIONS is interpreted as space-seperated path specification
+components which are prefixed by `org-glossary-collection-root'.
+Path spec components including spaces can be given by enclosing
+the location in double quotes. Should a file exist at a resolved
+location with the extension .org, that file will be used as the
+location."
+  (append
+   org-glossary-global-terms
+   (mapcar
+    (lambda (source-short)
+      (let ((fq-source (concat org-glossary-collection-root source-short)))
+        (if (file-exists-p (concat fq-source ".org"))
+            (concat fq-source ".org") fq-source)))
+    (org-babel-balanced-split
+     (or (org-element-map (org-element-parse-buffer) 'keyword
+           (lambda (keyword)
+             (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
+                  (org-element-property :value keyword)))
+           nil t)
+         "")
+     ?\s))))
+
 (defun org-glossary--term-status-message (current-terms &optional initial-terms)
   "Emit a status mesage, based on CURRENT-TERMS and INITIAL-TERMS."
   (let ((added-terms (cl-set-difference current-terms initial-terms :test #'string=))
-        (removed-terms (cl-set-difference initial-terms current-terms :test #'string=)))
+        (removed-terms (cl-set-difference initial-terms current-terms :test #'string=))
+        (n-sources (length (cl-delete-duplicates
+                            (mapcar
+                             (lambda (term-entry)
+                               (plist-get term-entry :definition-file))
+                             org-glossary--terms)))))
     (message "%s"
              (concat
               (propertize "org-glossary" 'face 'bold)
               ": "
               (propertize (number-to-string (length current-terms))
                           'face 'warning)
-              " registered terms"
+              " registered term" (and (> (length current-terms) 1) "s")
+              " from "
+              (propertize (number-to-string n-sources)
+                          'face 'bold)
+              " source" (and (> n-sources 1) "s")
               (and (or added-terms removed-terms) ", ")
               (and added-terms
                    (format "%s term%s added"
