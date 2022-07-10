@@ -1106,7 +1106,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (let* ((terms-by-letter
           (org-glossary--group-terms
            (org-glossary--sort-plist terms :key #'org-glossary--string>)
-           (lambda (trm) (aref (plist-get trm :key) 0))))
+           (lambda (trm) (upcase (aref (plist-get trm :key) 0)))))
          (num-terms-by-letter (mapcar (lambda (trms) (length (cdr trms)))
                                       terms-by-letter))
          (export-spec (alist-get type org-glossary--current-export-spec))
