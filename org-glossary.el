@@ -1592,10 +1592,11 @@ This should only be run as an export hook."
                   (previous-single-property-change (1+ pos) 'face)
                   (next-single-property-change pos 'face))))))
     (let ((referenced-term
-           (org-glossary--quicklookup
-            (string-trim (substring-no-properties
-                          (org-element-interpret-data
-                           (plist-get term-entry :value)))))))
+           (or (plist-get term-entry :alias-for)
+               (org-glossary--quicklookup
+                (string-trim (substring-no-properties
+                              (org-element-interpret-data
+                               (plist-get term-entry :value))))))))
       (format "(%s) %s %s"
               (propertize
                (symbol-name (plist-get (or referenced-term term-entry) :type))
