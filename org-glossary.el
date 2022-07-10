@@ -1164,7 +1164,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
          (?v . ,(org-glossary--export-instance
                  backend nil (plist-get term-entry :alias-for)
                  :alias-value 0))
-         (?b . ""))
+         (?b . ,""))
      `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
        (?v . ,(string-trim (org-element-interpret-data
                             (plist-get term-entry :value))))
