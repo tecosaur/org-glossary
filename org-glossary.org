@@ -139,7 +139,7 @@ This would be equivalent to:
 
 #+begin_example
 ,#+include: COLLECTION-ROOT/abbrevs.org
-,#+include: COLLECTION-ROOT/physics.org::*Quantum
+,#+include: COLLECTION-ROOT/physics.org::*Quantum :only-contents t
 ,#+include: COLLECTION-ROOT/foo.org
 ,#+include: COLLECTION-ROOT/bar.org
 #+end_example
@@ -147,6 +147,10 @@ This would be equivalent to:
 You could also set to an individual file with the beginning of a heading
 specification, say ~file.org::*~. This would allow you to have all the terms
 defined in one file and include groups by heading.
+
+Not that sources with heading/custom-id searches will automatically have
+=:only-contents t= added (as seen in the example). This allows for named headings
+with glossary subheadings to work when ~org-glossary-toplevel-only~ is set.
 
 *** Basic definitions
 

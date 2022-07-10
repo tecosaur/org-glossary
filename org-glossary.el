@@ -1688,8 +1688,12 @@ location."
    (mapcar
     (lambda (source-short)
       (let ((fq-source (concat org-glossary-collection-root source-short)))
-        (if (file-exists-p (concat fq-source ".org"))
-            (concat fq-source ".org") fq-source)))
+        (cond
+         ((file-exists-p (concat fq-source ".org"))
+          (concat fq-source ".org"))
+         ((string-match-p "\\.org::[*#]." fq-source)
+          (concat fq-source " :only-contents t"))
+         (t fq-source))))
     (org-babel-balanced-split
      (or (org-element-map (org-element-parse-buffer) 'keyword
            (lambda (keyword)

@@ -246,7 +246,7 @@ This would be equivalent to:
 
 @example
 #+include: COLLECTION-ROOT/abbrevs.org
-#+include: COLLECTION-ROOT/physics.org::*Quantum
+#+include: COLLECTION-ROOT/physics.org::*Quantum :only-contents t
 #+include: COLLECTION-ROOT/foo.org
 #+include: COLLECTION-ROOT/bar.org
 @end example
@@ -254,6 +254,10 @@ This would be equivalent to:
 You could also set to an individual file with the beginning of a heading
 specification, say @code{file.org::*}. This would allow you to have all the terms
 defined in one file and include groups by heading.
+
+Not that sources with heading/custom-id searches will automatically have
+@samp{:only-contents t} added (as seen in the example). This allows for named headings
+with glossary subheadings to work when @code{org-glossary-toplevel-only} is set.
 
 @node Basic definitions
 @subsection Basic definitions
@@ -742,7 +746,7 @@ instead make use of @code{setcdr} or @code{plist-put} like so:
 (let ((latex-dspec (alist-get t (alist-get 'latex org-glossary-export-specs))))
   (plist-put latex-dspec :backref "gls-%k-use-%r")
   (plist-put latex-dspec :definition-structure
-                         "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\labelcpageref@{@@@@%b@@@@latex:@}@@@@"))
+                         "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\ifnum %n>0 \\labelcpageref@{@@@@%b@@@@latex:@}\\fi@@@@\n"))
 @end example
 
 This allows for any change in other backends or the defaults you're not
