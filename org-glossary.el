@@ -238,10 +238,11 @@ definitions.
 
 If using cleverref with LaTeX, making use of the \\labelcpageref
 command like so is recommended:
-  (let ((latex-dspec (alist-get t (alist-get 'latex org-glossary-export-specs))))
-    (plist-put latex-dspec :backref \"gls-%k-use-%r\")
-    (plist-put latex-dspec :definition-structure
-               \"*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum %n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n\"))
+
+  (org-glossary-set-export-spec 'latex t
+    :backref \"gls-%k-use-%r\"
+    :definition-structure
+    \"*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum%n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n\")
 
 TODO rewrite for clarity."
   :type '(alist :key-type (symbol :tag "Backend")
@@ -950,6 +951,16 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
     (cons (cons t default-template)
           (mapcar complete-template
                   (mapcar #'cdr org-glossary-headings)))))
+
+(defun org-glossary-set-export-spec (backend type &rest property-value-pairs)
+  "For the TYPE plist for BACKEND's export spec, set PROPERTY-VALUE-PAIRS.
+Specifically, for each :PROPERTY VALUE pair of PROPERTY-VALUE-PAIRS, that
+PROPERTY is set to VALUE within the TYPE list of the BACKEND list in
+`org-glossary-export-specs'."
+  (while property-value-pairs
+    (setf (alist-get type (alist-get backend org-glossary-export-specs))
+          (plist-put (alist-get type (alist-get backend org-glossary-export-specs))
+                     (pop property-value-pairs) (pop property-value-pairs)))))
 
 (defun org-glossary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
   "Export the FORM of TERM-ENTRY according to `org-glossary--current-export-spec'.

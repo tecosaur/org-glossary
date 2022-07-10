@@ -705,8 +705,7 @@ Create a near-copy of @samp{index}, just changing the heading
 In the first case, all we need to do is execute the following snippet.
 
 @example
-(plist-put (alist-get 'index (alist-get t org-glossary-export-specs))
-           :heading "* Indices")
+(org-glossary-set-export-spec t 'index :heading "* Indices)
 @end example
 
 Should we actually want to have this be reflected in the export, instead of
@@ -720,8 +719,7 @@ simply update the default @code{:heading} as we've just done for @samp{index}.
   (when-let ((index-template (alist-get 'index (cdr template-set))))
     (push (cons 'indices index-template) (cdr template-set))))
 
-(plist-put (alist-get 'indices (alist-get t org-glossary-export-specs))
-           :heading "* Indices")
+(org-glossary-set-export-spec t 'indices :heading "* Indices)
 @end example
 
 For our final example, let's say we wanted to add support for @samp{Abbreviations}.
@@ -743,11 +741,26 @@ Instead of overwriting @code{org-glossary-export-specs}, it is recommended that 
 instead make use of @code{setcdr} or @code{plist-put} like so:
 
 @example
-(let ((latex-dspec (alist-get t (alist-get 'latex org-glossary-export-specs))))
-  (plist-put latex-dspec :backref "gls-%k-use-%r")
-  (plist-put latex-dspec :definition-structure
-                         "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\ifnum %n>0 \\labelcpageref@{@@@@%b@@@@latex:@}\\fi@@@@\n"))
+(org-glossary-set-export-spec 'latex t
+  :backref "gls-%k-use-%r"
+  :definition-structure "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\ifnum%n>0 \\labelcpageref@{@@@@%b@@@@latex:@}\\fi@@@@\n")
 @end example
+
+In this example we could alternatively set @samp{:definition-structure} to a function
+to avoid the @samp{\ifnum%n>0} @LaTeX{} switch.
+
+@example
+(org-glossary-set-export-spec
+ 'latex t :definition-structure
+ (lambda (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
+   (org-glossary--export-template
+    (if (plist-get term-entry :uses)
+        "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\labelcpageref@{@@@@%b@@@@latex:@}@@@@\n"
+      "*%d*\\emsp@{@}%v\n")
+    backend info term-entry ref-index
+    plural-p capitalized-p extra-parameters)))
+@end example
+
 
 This allows for any change in other backends or the defaults you're not
 particularly attached to from freely updating.
