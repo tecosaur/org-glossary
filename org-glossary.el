@@ -990,7 +990,7 @@ optional arguments:
  - REF-INDEX provides %r
  - PLURAL-P and CAPITALIZED-P affect %t and %v
  - EXTRA-PARAMETERS defines additional fields"
-  (let ((parameters extra-parameters)
+  (let ((parameters (reverse extra-parameters))
         (canonical-term (or (plist-get term-entry :alias-for) term-entry))
         case-fold-search)
     (when org-glossary-canonicalise-aliases
