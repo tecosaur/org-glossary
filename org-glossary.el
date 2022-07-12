@@ -1578,6 +1578,7 @@ This should only be run as an export hook."
         ('substitution
          (if org-glossary-display-substitute-value
              `(face org-glossary-substituted-value
+                    help-echo org-glossary--term-help-echo
                     mouse-face org-glossary-substitution-term
                     display
                     ,(string-trim
