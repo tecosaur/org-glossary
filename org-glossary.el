@@ -1526,7 +1526,10 @@ This should only be run as an export hook."
                        mouse-face (:inverse-video t)
                        keymap (keymap
                                (follow-link . mouse-face)
-                               (mouse-2 . org-glossary-goto-term-definition))) t)))))
+                               (mouse-2 . org-glossary-goto-term-definition)
+                               ("RET" . org-glossary-goto-term-definition)
+                               (return . org-glossary-goto-term-definition)))
+                t)))))
   per-term-p)
 
 (define-minor-mode org-glossary-mode
@@ -1593,7 +1596,9 @@ This should only be run as an export hook."
         mouse-face (:inverse-video t)
         keymap (keymap
                 (follow-link . mouse-face)
-                (mouse-2 . org-glossary-goto-term-definition)))))))
+                (mouse-2 . org-glossary-goto-term-definition)
+                ("RET" . org-glossary-goto-term-definition)
+                (return . org-glossary-goto-term-definition)))))))
 
 (defun org-glossary--term-help-echo (_window object pos)
   "Find the term reference at POS in OBJECT, and get the definition."
