@@ -1531,7 +1531,7 @@ This should only be run as an export hook."
                (0 (org-glossary--fontify-term))))
           '((org-glossary--fontify-find-next
              (0 '(face org-glossary-term
-                       help-echo org-glossary--term-help-echo
+                       help-echo org-glossary--help-echo-from-textprop
                        mouse-face (:inverse-video t)
                        keymap (keymap
                                (follow-link . mouse-face)
@@ -1590,7 +1590,7 @@ This should only be run as an export hook."
         ('substitution
          (if org-glossary-display-substitute-value
              `(face org-glossary-substituted-value
-                    help-echo org-glossary--term-help-echo
+                    help-echo org-glossary--help-echo-from-textprop
                     mouse-face org-glossary-substitution-term
                     display
                     ,(string-trim
@@ -1601,7 +1601,7 @@ This should only be run as an export hook."
         (type `(face ,(or (alist-get type org-glossary-fontify-type-faces)
                           'org-glossary-term))))
       `(help-echo
-        org-glossary--term-help-echo
+        org-glossary--help-echo-from-textprop
         mouse-face (:inverse-video t)
         keymap (keymap
                 (follow-link . mouse-face)
@@ -1609,39 +1609,49 @@ This should only be run as an export hook."
                 ("RET" . org-glossary-goto-term-definition)
                 (return . org-glossary-goto-term-definition)))))))
 
-(defun org-glossary--term-help-echo (_window object pos)
-  "Find the term reference at POS in OBJECT, and get the definition."
+(defun org-glossary--term-help-echo (term-entry)
+  "Generate a help-echo string for TERM-ENTRY.
+TERM-ENTRY may be either a term entry list, or a term string."
   (when-let ((term-entry
-              (org-glossary--quicklookup
-               (with-current-buffer object
-                 (buffer-substring-no-properties
-                  (previous-single-property-change (1+ pos) 'face)
-                  (next-single-property-change pos 'face))))))
-    (let ((referenced-term
-           (or (plist-get term-entry :alias-for)
-               (org-glossary--quicklookup
-                (string-trim (substring-no-properties
-                              (org-element-interpret-data
-                               (plist-get term-entry :value))))))))
-      (format "(%s) %s %s"
-              (propertize
-               (symbol-name (plist-get (or referenced-term term-entry) :type))
-               'face 'org-table)
-              (concat
-               (propertize
-                (plist-get term-entry :term)
-                'face (if referenced-term 'font-lock-doc-face 'org-list-dt))
-               (and referenced-term
-                    (concat
-                     " ⟶ "
-                     (propertize
-                      (plist-get referenced-term :term)
-                      'face 'org-list-dt))))
-              (replace-regexp-in-string
-               "\s?\n\s*" " " ; flatten newline indentation
-               (string-trim
-                (org-element-interpret-data
-                 (plist-get (or referenced-term term-entry) :value))))))))
+              (if (stringp term-entry)
+                  (org-glossary--quicklookup term-entry)
+                term-entry))
+             (referenced-term
+              (or (plist-get term-entry :alias-for)
+                  (org-glossary--quicklookup
+                   (string-trim (substring-no-properties
+                                 (org-element-interpret-data
+                                  (plist-get term-entry :value)))))
+                  term-entry)))
+    (format "(%s) %s %s"
+            (propertize
+             (symbol-name (plist-get (or referenced-term term-entry) :type))
+             'face 'org-table)
+            (concat
+             (propertize
+              (plist-get term-entry :term)
+              'face (if referenced-term 'font-lock-doc-face 'org-list-dt))
+             (and referenced-term
+                  (concat
+                   " ⟶ "
+                   (propertize
+                    (plist-get referenced-term :term)
+                    'face 'org-list-dt))))
+            (replace-regexp-in-string
+             "\s?\n\s*" " " ; flatten newline indentation
+             (string-trim
+              (org-element-interpret-data
+               (plist-get (or referenced-term term-entry) :value)))))))
+
+(defun org-glossary--help-echo-from-textprop (_window object pos)
+  "Find the term reference at POS in OBJECT, and get the definition."
+  (org-glossary--term-help-echo
+   (with-current-buffer object
+     (replace-regexp-in-string
+      "^[Gg]ls\\(?:pl\\)?:" ""
+      (buffer-substring-no-properties
+       (previous-single-property-change (1+ pos) 'face)
+       (next-single-property-change pos 'face))))))
 
 ;;; Completion
 
