@@ -1620,36 +1620,37 @@ This should only be run as an export hook."
 (defun org-glossary--term-help-echo (term-entry)
   "Generate a help-echo string for TERM-ENTRY.
 TERM-ENTRY may be either a term entry list, or a term string."
-  (when-let ((term-entry
-              (if (stringp term-entry)
-                  (org-glossary--quicklookup term-entry)
-                term-entry))
-             (referenced-term
-              (or (plist-get term-entry :alias-for)
-                  (org-glossary--quicklookup
-                   (string-trim (substring-no-properties
-                                 (org-element-interpret-data
-                                  (plist-get term-entry :value)))))
-                  term-entry)))
-    (format "(%s) %s %s"
-            (propertize
-             (symbol-name (plist-get (or referenced-term term-entry) :type))
-             'face 'org-table)
-            (concat
-             (propertize
-              (plist-get term-entry :term)
-              'face (if referenced-term 'font-lock-doc-face 'org-list-dt))
-             (and referenced-term
-                  (concat
-                   " ⟶ "
-                   (propertize
-                    (plist-get referenced-term :term)
-                    'face 'org-list-dt))))
-            (replace-regexp-in-string
-             "\s?\n\s*" " " ; flatten newline indentation
-             (string-trim
-              (org-element-interpret-data
-               (plist-get (or referenced-term term-entry) :value)))))))
+  (let* ((term-entry
+          (if (stringp term-entry)
+              (org-glossary--quicklookup term-entry)
+            term-entry))
+         (referenced-term
+          (and term-entry
+               (or (plist-get term-entry :alias-for)
+                   (org-glossary--quicklookup
+                    (string-trim (substring-no-properties
+                                  (org-element-interpret-data
+                                   (plist-get term-entry :value)))))))))
+    (and term-entry
+         (format "(%s) %s %s"
+                 (propertize
+                  (symbol-name (plist-get (or referenced-term term-entry) :type))
+                  'face 'org-table)
+                 (concat
+                  (propertize
+                   (plist-get term-entry :term)
+                   'face (if referenced-term 'font-lock-doc-face 'org-list-dt))
+                  (and referenced-term
+                       (concat
+                        " ⟶ "
+                        (propertize
+                         (plist-get referenced-term :term)
+                         'face 'org-list-dt))))
+                 (replace-regexp-in-string
+                  "\s?\n\s*" " " ; flatten newline indentation
+                  (string-trim
+                   (org-element-interpret-data
+                    (plist-get (or referenced-term term-entry) :value))))))))
 
 (defun org-glossary--help-echo-from-textprop (_window object pos)
   "Find the term reference at POS in OBJECT, and get the definition."
