@@ -559,25 +559,6 @@ side-effect when it is provided."
                      (org-element-interpret-data
                       (or (org-element-property :tag item)
                           (org-element-contents item))))))
-         (keys-terms (split-string term-str "[ \t]*=[ \t]*"))
-         (term-and-plural (split-string (car (last keys-terms)) "[ \t]*,[ \t]*"))
-         (term (car term-and-plural))
-         (plural (or (cadr term-and-plural)
-                     (funcall org-glossary-plural-function term)))
-         (key-and-plural (split-string (car keys-terms) "[ \t]*,[ \t]*"))
-         (key (car key-and-plural))
-         (key-plural (or (cadr key-and-plural)
-                         (funcall org-glossary-plural-function key)))
-         (type-category (org-glossary--entry-type-category
-                         (org-element-lineage item '(headline))))
-         (item-contents (and (org-element-property :tag item)
-                             (org-element-contents item)))
-         (value (mapcar
-                 #'org-element-extract-element
-                 (if (and (= (length item-contents) 1)
-                          (eq (caar item-contents) 'paragraph))
-                     (org-element-contents (car item-contents))
-                   item-contents)))
          (case-fold-search nil)
          (sentancecase-to-lowercase
           (lambda (word)
@@ -587,14 +568,35 @@ side-effect when it is provided."
                     ;; more languages at some point.
                     (string-match-p "^\\(?:A\\|An\\)[[:space:]][^[:upper:]]+$" word))
                 (concat (string (downcase (aref word 0))) (substring word 1))
-              word))))
-    (list :key (funcall sentancecase-to-lowercase key)
-          :key-plural (unless (string-empty-p key-plural)
-                        (funcall sentancecase-to-lowercase key-plural))
+              word)))
+         (keys-terms (split-string term-str "[ \t]*=[ \t]*"))
+         (term-and-plural (split-string (car (last keys-terms)) "[ \t]*,[ \t]*"))
+         (term (funcall sentancecase-to-lowercase (car term-and-plural)))
+         (plural (funcall sentancecase-to-lowercase
+                          (or (cadr term-and-plural)
+                              (funcall org-glossary-plural-function term))))
+         (key-and-plural (split-string (car keys-terms) "[ \t]*,[ \t]*"))
+         (key (funcall sentancecase-to-lowercase (car key-and-plural)))
+         (key-plural (funcall sentancecase-to-lowercase
+                              (or (cadr key-and-plural)
+                                  (funcall org-glossary-plural-function key))))
+         (type-category (org-glossary--entry-type-category
+                         (org-element-lineage item '(headline))))
+         (item-contents (and (org-element-property :tag item)
+                             (org-element-contents item)))
+         (value (mapcar
+                 #'org-element-extract-element
+                 (if (and (= (length item-contents) 1)
+                          (eq (caar item-contents) 'paragraph))
+                     (org-element-contents (car item-contents))
+                   item-contents))))
+    (list :key key
+          :key-plural (and (not (string-empty-p key-plural))
+                           (not (string= key key-plural))
+                        key-plural)
           :key-nonce (org-glossary--key-nonce key)
-          :term (funcall sentancecase-to-lowercase term)
-          :term-plural (unless (string-empty-p plural)
-                         (funcall sentancecase-to-lowercase plural))
+          :term term
+          :term-plural plural
           :alias-for nil
           :type (car type-category)
           :category (cdr type-category)
