@@ -242,6 +242,7 @@ command like so is recommended:
 
   (org-glossary-set-export-spec 'latex t
     :backref \"gls-%k-use-%r\"
+    :backref-seperator \",\"
     :definition-structure
     \"*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum%n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n\")
 
