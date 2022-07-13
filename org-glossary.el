@@ -151,6 +151,7 @@ at least three terms that start with the same letter."
           :first-use "%u"
           :definition "%t"
           :backref "%r"
+          :backref-seperator ", "
           :heading ""
           :category-heading "* %c\n"
           :letter-heading "*%L*\n"
@@ -1161,23 +1162,24 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (org-glossary--export-instance
    backend nil term-entry :definition-structure
    nil nil nil
-   (if (plist-get term-entry :alias-for)
-       `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
-         (?v . ,(org-glossary--export-instance
-                 backend nil (plist-get term-entry :alias-for)
-                 :alias-value 0))
-         (?b . ,""))
-     `((?d . ,(format "[[glsdef:%s]]" (plist-get term-entry :key)))
-       (?v . ,(string-trim (org-element-interpret-data
-                            (plist-get term-entry :value))))
-       (?b . ,(mapconcat
-               (lambda (use)
-                 (format "[[glsuse:%d:%s]]"
-                         (car use) (plist-get term-entry :key)))
-               (cl-sort
-                (plist-get term-entry :uses)
-                #'< :key #'car)
-               ", "))))))
+   (let ((key (plist-get term-entry :key)))
+     (if (plist-get term-entry :alias-for)
+         `((?d . ,(format "[[glsdef:%s]]" key))
+           (?v . ,(org-glossary--export-instance
+                   backend nil (plist-get term-entry :alias-for)
+                   :alias-value 0))
+           (?b . ,""))
+       `((?d . ,(format "[[glsdef:%s]]" key))
+         (?v . ,(string-trim (org-element-interpret-data
+                              (plist-get term-entry :value))))
+         (?b . ,(mapconcat
+                 (lambda (use)
+                   (format "[[glsuse:%d:%s]]" (car use) key))
+                 (cl-sort
+                  (plist-get term-entry :uses)
+                  #'< :key #'car)
+                 (org-glossary--export-instance
+                  backend nil term-entry :backref-seperator))))))))
 
 (defun org-glossary--group-terms (terms predicate &optional include)
   "Group TERMS according to PREDICATE, and only INCLUDE certain groups (if non-nil)."
