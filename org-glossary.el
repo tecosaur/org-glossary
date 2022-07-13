@@ -1837,6 +1837,89 @@ point will be used."
     (goto-char (plist-get term-entry :definition-pos))
     term-entry))
 
+(defun org-glossary-list-duplicates ()
+  "Examine the currently defined terms, showing duplications."
+  (interactive)
+  (org-glossary-update-terms)
+  (if-let ((duplicated-terms
+            (org-glossary--identify-duplicates org-glossary--terms)))
+      (let ((orig-buf (current-buffer))
+            (buf (get-buffer-create "*Org Glossary Duplicate Terms*")))
+        (with-current-buffer buf
+          (erase-buffer)
+          (insert (propertize (format "%d duplicated terms found"
+                                      (length duplicated-terms))
+                              'face 'org-level-2)
+                  "\n")
+          (dolist (term-duplicates duplicated-terms)
+            (let ((term (car term-duplicates))
+                  (duplicates (cdr term-duplicates))
+                  (i 0))
+              (insert (propertize (format "Duplicates for %s" term)
+                                  'face 'org-level-3)
+                      "\n")
+              (dolist (dup duplicates)
+                (insert (propertize (format " %d. " (setq i (1+ i)))
+                                    'face '(bold org-list-dt))
+                        (concat
+                         (if (equal term (plist-get dup :key))
+                             (propertize term 'face 'org-list-dt)
+                           (propertize (plist-get dup :key) 'face 'shadow))
+                         (and (plist-get dup :key-plural) "/")
+                         (and (plist-get dup :key-plural)
+                              (if (equal term (plist-get dup :key-plural))
+                                  (propertize term 'face 'org-list-dt)
+                                (propertize (plist-get dup :key-plural)
+                                            'face 'shadow))))
+                        " from ")
+                (insert-text-button
+                 (format "%s@%d"
+                         (file-name-nondirectory (plist-get dup :definition-file))
+                         (plist-get dup :definition-pos))
+                 'face 'link
+                 'action (lambda (_button)
+                           (if (bufferp (plist-get dup :definition-file))
+                               (select-window (display-buffer (plist-get dup :definition-file)
+                                                              '(nil (inhibit-same-window t))))
+                             (other-window 1))
+                           (with-current-buffer orig-buf
+                             (org-glossary-goto-term-definition dup)))
+                 'help-echo "mouse-2, RET: Go to this definition"
+                 'follow-link t)
+                (insert "\n   "
+                        (propertize
+                         (truncate-string-to-width
+                          (replace-regexp-in-string
+                           "\n *" " "
+                           (string-trim (org-element-interpret-data
+                                         (plist-get dup :value))))
+                          (min 120 (- (window-width) 4))
+                          nil nil t)
+                         'face 'font-lock-doc-face)
+                        "\n"))
+              (insert "\n")))
+          (goto-char (point-min)))
+        (pop-to-buffer buf))
+    (message "No duplicate terms detected.")))
+
+(defun org-glossary--identify-duplicates (terms)
+  "Identify duplicates in TERMS."
+  (let ((terms-seen (make-hash-table :size (length terms)
+                                     :test #'equal))
+        duplicated-terms)
+    (dolist (term-entry terms)
+      (dolist (keystr (list (plist-get term-entry :key)
+                            (plist-get term-entry :key-plural)))
+        (when keystr
+          (if (gethash keystr terms-seen)
+              (if (assoc keystr duplicated-terms)
+                  (push term-entry
+                        (alist-get keystr duplicated-terms nil nil #'equal))
+                (push (list keystr (gethash keystr terms-seen) term-entry)
+                      duplicated-terms))
+            (puthash keystr term-entry terms-seen)))))
+    duplicated-terms))
+
 (defun org-glossary-insert-term-reference ()
   "Pick a term, and insert a reference to it."
   (interactive)
