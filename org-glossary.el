@@ -1322,16 +1322,24 @@ the :consume parameter extracted from KEYWORD."
 
 (org-link-set-parameters "gls"
                          :export #'org-glossary--link-export-gls
-                         :face 'org-glossary-term)
+                         :face 'org-glossary-term
+                         :follow #'org-glossary-goto-term-definition
+                         :help-echo #'org-glossary--help-echo-from-textprop)
 (org-link-set-parameters "glspl"
                          :export #'org-glossary--link-export-glspl
-                         :face 'org-glossary-term)
+                         :face 'org-glossary-term
+                         :follow #'org-glossary-goto-term-definition
+                         :help-echo #'org-glossary--help-echo-from-textprop)
 (org-link-set-parameters "Gls"
                          :export #'org-glossary--link-export-Gls
-                         :face 'org-glossary-term)
+                         :face 'org-glossary-term
+                         :follow #'org-glossary-goto-term-definition
+                         :help-echo #'org-glossary--help-echo-from-textprop)
 (org-link-set-parameters "Glspl"
                          :export #'org-glossary--link-export-Glspl
-                         :face 'org-glossary-term)
+                         :face 'org-glossary-term
+                         :follow #'org-glossary-goto-term-definition
+                         :help-echo #'org-glossary--help-echo-from-textprop)
 
 (defun org-glossary--link-export-gls (index-term description backend info)
   "Export a gls link to term index-term with BACKEND."
