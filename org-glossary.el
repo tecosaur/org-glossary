@@ -599,7 +599,7 @@ side-effect when it is provided."
     (list :key key
           :key-plural (and (not (string-empty-p key-plural))
                            (not (string= key key-plural))
-                        key-plural)
+                           key-plural)
           :key-nonce (org-glossary--key-nonce key)
           :term term
           :term-plural plural
@@ -1131,9 +1131,9 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
          (export-spec (alist-get type org-glossary--current-export-spec))
          (use-letters-p
           (and (>= (apply #'+ num-terms-by-letter)
-                  (car org-glossary-print-letter-minimums))
+                   (car org-glossary-print-letter-minimums))
                (>= (apply #'max num-terms-by-letter)
-                  (cdr org-glossary-print-letter-minimums))
+                   (cdr org-glossary-print-letter-minimums))
                (not (string-empty-p (plist-get export-spec :letter-heading))))))
     (concat
      (and (not use-letters-p)
@@ -1803,7 +1803,7 @@ location."
    (concat
     (plist-get term-entry :term)
     "\u200b"
-    (make-string (max 0 (- 18 (length(plist-get term-entry :term) ))) ?\s))
+    (make-string (max 0 (- 18 (length (plist-get term-entry :term)))) ?\s))
    'face 'font-lock-keyword-face
    'org-glossary--term term-entry))
 
@@ -2032,7 +2032,7 @@ point will be used."
                      (or (and (re-search-forward "^\\*+ " nil t)
                               (forward-line -1)
                               (line-end-position))
-                      type-sec-end)
+                         type-sec-end)
                    (goto-char type-sec-end)
                    (insert (make-string (1+ type-hlevel) ?*) " "
                            category " :" org-glossary--category-heading-tag ":\n")
