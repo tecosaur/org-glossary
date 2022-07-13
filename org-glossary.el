@@ -1824,13 +1824,15 @@ point will be used."
               (if (consp term-ref) term-ref
                 (or (org-glossary--quicklookup
                      (or (and (stringp term-ref) term-ref)
-                         (buffer-substring-no-properties
-                          (or (previous-single-property-change
-                               (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
-                              (point-min))
-                          (or (next-single-property-change
-                               (or (and (numberp term-ref) term-ref) (point)) 'face)
-                              (point-max)))))
+                         (replace-regexp-in-string
+                          "^[Gg]ls\\(?:pl\\)?:" ""
+                          (buffer-substring-no-properties
+                           (or (previous-single-property-change
+                                (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
+                               (point-min))
+                           (or (next-single-property-change
+                                (or (and (numberp term-ref) term-ref) (point)) 'face)
+                               (point-max))))))
                     (org-glossary--select-term org-glossary--terms)))))
     (if-let ((aliased-term
               (org-glossary--quicklookup
