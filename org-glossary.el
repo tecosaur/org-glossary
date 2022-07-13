@@ -1797,12 +1797,14 @@ Where TERM-TEXT is constructed by `org-glossary--select-term-candidatify'."
             (truncate-string-to-width
              (org-glossary--select-term-group term-text nil)
              9 0 ?\s))
-          (string-trim
-           (substring-no-properties
-            (org-element-interpret-data
-             (plist-get
-              (get-text-property 0 'org-glossary--term term-text)
-              :value))))))
+          (replace-regexp-in-string
+           "\n\s*" " "
+           (string-trim
+            (substring-no-properties
+             (org-element-interpret-data
+              (plist-get
+               (get-text-property 0 'org-glossary--term term-text)
+               :value)))))))
 
 (defun org-glossary--select-term-group (term-text transform)
   "Construct the group of TERM-TEXT.
