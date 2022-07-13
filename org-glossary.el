@@ -309,8 +309,10 @@ Requires `org-glossary-fontify-types-differently' to be non-nil."
 Terms from `org-glossary--extra-term-sources' will be added
 unless PATH-SPEC is non-nil and NO-EXTRA-SOURCES nil."
   (let* ((path-spec (org-glossary--complete-path-spec path-spec))
-         (term-source (org-glossary--get-terms-oneshot path-spec)))
-    (push path-spec already-included)
+         (term-source
+          (and (not (member path-spec already-included))
+               (org-glossary--get-terms-oneshot path-spec))))
+    (setq already-included (nconc already-included (list path-spec)))
     (org-glossary--maybe-add-extra-terms
      #'org-glossary--get-terms
      (apply #'append
@@ -495,7 +497,9 @@ the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
                                       (file-attribute-modification-time
                                        (file-attributes cached-file))))))))
          (term-source
-          (or (and term-source-cached
+          (or (and (member path-spec already-included)
+                   '(:terms nil))
+              (and term-source-cached
                    (if cache-valid t
                      (delq term-source-cached org-glossary--terms-cache)
                      nil)
@@ -508,7 +512,7 @@ the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
     (when (and (not (hash-table-empty-p org-glossary--quicklookup-cache))
                term-source-cached (not cache-valid))
       (setq org-glossary--quicklookup-cache (make-hash-table :test #'equal)))
-    (push path-spec already-included)
+    (setq already-included (nconc already-included (list path-spec)))
     (org-glossary--maybe-add-extra-terms
      #'org-glossary--get-terms-cached
      (apply #'append
