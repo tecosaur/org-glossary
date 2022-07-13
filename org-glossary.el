@@ -1808,21 +1808,23 @@ Where TERM-TEXT is constructed by `org-glossary--select-term-candidatify'."
 
 (defun org-glossary-goto-term-definition (&optional term-ref)
   "Go to the definition of TERM-REF.
-TERM-REF may be a string or position in the buffer to look for a term.
-If TERM-REF is not given, the current point will be used."
+TERM-REF may be a string, position in the buffer to look for a
+term, or a term entry list. If TERM-REF is not given, the current
+point will be used."
   (interactive)
   (org-glossary-update-terms)
   (when-let ((term-entry
-              (or (org-glossary--quicklookup
-                   (or (and (stringp term-ref) term-ref)
-                       (buffer-substring-no-properties
-                        (or (previous-single-property-change
-                             (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
-                            (point-min))
-                        (or (next-single-property-change
-                             (or (and (numberp term-ref) term-ref) (point)) 'face)
-                            (point-max)))))
-                  (org-glossary--select-term org-glossary--terms))))
+              (if (consp term-ref) term-ref
+                (or (org-glossary--quicklookup
+                     (or (and (stringp term-ref) term-ref)
+                         (buffer-substring-no-properties
+                          (or (previous-single-property-change
+                               (1+ (or (and (numberp term-ref) term-ref) (point))) 'face)
+                              (point-min))
+                          (or (next-single-property-change
+                               (or (and (numberp term-ref) term-ref) (point)) 'face)
+                              (point-max)))))
+                    (org-glossary--select-term org-glossary--terms)))))
     (if-let ((aliased-term
               (org-glossary--quicklookup
                (string-trim (org-element-interpret-data
