@@ -1857,8 +1857,8 @@ point will be used."
         (setq term-entry aliased-term))
     (let ((def-file (plist-get term-entry :definition-file)))
       (if (bufferp def-file)
-          (switch-to-buffer def-file))
-      (find-file def-file))
+          (switch-to-buffer def-file)
+        (find-file def-file)))
     (goto-char (plist-get term-entry :definition-pos))
     term-entry))
 
