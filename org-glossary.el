@@ -372,8 +372,9 @@ TERM-GETTER will be called with three arguments: the term source, t, and `alread
                (when (string= "INCLUDE" (org-element-property :key kwd))
                  (org-element-property :value kwd))))))))
 
-(defun org-glossary--complete-path-spec (path-spec)
-  "Given a tentative PATH-SPEC, try to get a proper one."
+(defun org-glossary--complete-path-spec (&optional path-spec)
+  "Given a tentative PATH-SPEC, try to get a proper one.
+The PATH-SPEC is formed with respect to the current buffer."
   (or (and (stringp path-spec)
            (org-glossary--parse-include-value path-spec))
       path-spec
