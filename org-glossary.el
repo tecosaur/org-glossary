@@ -33,9 +33,6 @@
 ;; in the file, like org-toc.?
 ;; This is complicated by the way we treat * Glossary sections etc.
 ;;
-;; TODO check for glossary updates with an idle timer, if performance
-;; characteristics allow (maybe with a heuristic for file size/complexity).
-;;
 ;; TODO support references inside glossary definitions, being careful
 ;; to avoid circular references.
 ;;
@@ -301,6 +298,20 @@ Requires `org-glossary-fontify-types-differently' to be non-nil."
 
 (defvar-local org-glossary--terms nil
   "The currently known terms.")
+
+(defvar org-glossary--paths-to-update nil
+  "List of paths whos terms should be updated.")
+
+(defvar org-glossary--path-update-timer nil
+  "The timer which will update paths, should it exist.")
+
+(defvar org-glossary--path-dependencies nil
+  "Alist of definition source paths and their dependent paths.")
+
+(defcustom org-glossary-idle-update-period 0.5
+  "Idle time in seconds used when updating term definitions.
+Set to nil to disable automatic update propagation."
+  :type '(choice number (const nil :tag "Do not update")))
 
 ;;; Obtaining term definitions
 
@@ -938,6 +949,77 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
                (plist-get term-entry :key))
       :format bracket))))
 
+;;; Automatic term updating
+
+(defun org-glossary--register-buffer-dependencies (&optional path-spec)
+  "Watch all definition dependencies of PATH-SPEC for updates."
+  (let ((path-spec (or path-spec (org-glossary--complete-path-spec))))
+    (let* ((term-cache (cdr (assoc path-spec org-glossary--terms-cache)))
+           (included (plist-get term-cache :included))
+           (extras (mapcar #'org-glossary--parse-include-value
+                           (plist-get term-cache :extra-term-sources))))
+      (org-glossary--deregister-buffer-dependencies path-spec)
+      (dolist (dep-pspec (nconc extras included))
+        (if-let ((dep-files (assoc dep-pspec org-glossary--path-dependencies)))
+            (unless (member path-spec dep-files)
+              (push path-spec (cdr dep-files)))
+          (push (list dep-pspec path-spec) org-glossary--path-dependencies))
+        (org-glossary--register-buffer-dependencies dep-pspec)))))
+
+(defun org-glossary--deregister-buffer-dependencies (&optional path-spec)
+  "Stop watching definition dependencies for PATH-SPEC."
+  (let ((path-spec (or path-spec (org-glossary--complete-path-spec))))
+    (dolist (buf-dep org-glossary--path-dependencies)
+      (setcdr buf-dep (delete path-spec (cdr buf-dep)))
+      (unless (cdr buf-dep)
+        (setq org-glossary--path-dependencies
+              (delete buf-dep org-glossary--path-dependencies))
+        (org-glossary--deregister-buffer-dependencies (car buf-dep))))))
+
+(defun org-glossary--propagate-buffer-updates (path-spec)
+  "Update all buffers whos definitions depend on PATH-SPEC.
+The actual update is performed by `org-glossary--update-buffers'."
+  (when-let ((dependants (cdr (assoc path-spec org-glossary--path-dependencies))))
+    (unless org-glossary--path-update-timer
+      (setq org-glossary--path-update-timer
+            (run-with-idle-timer org-glossary-idle-update-period nil
+                                 #'org-glossary--update-buffers)))
+    (dolist (dep dependants)
+      (add-to-list 'org-glossary--paths-to-update dep)
+      (org-glossary--propagate-buffer-updates dep))))
+
+(defun org-glossary--detect-updates-and-propagate (&optional path-spec)
+  "Propagate any term definition updates originating from PATH-SPEC."
+  (when org-glossary-idle-update-period
+    (let* ((path-spec (or path-spec (org-glossary--complete-path-spec)))
+           (cache-entry (cdr (assoc path-spec org-glossary--terms-cache)))
+           (old-term-hash (plist-get cache-entry :terms-hash))
+           (old-term-extras
+            (sort (plist-get cache-entry :extra-term-sources) #'string<))
+           new-term-hash new-term-extras)
+      (org-glossary--get-terms-cached path-spec t nil)
+      (setq cache-entry (cdr (assoc path-spec org-glossary--terms-cache))
+            new-term-hash (plist-get cache-entry :terms-hash)
+            new-term-extras (sort (plist-get cache-entry :extra-term-sources)
+                                  #'string<))
+      (unless (and (eq old-term-hash new-term-hash)
+                   (equal old-term-extras new-term-extras))
+        (when org-glossary-mode (org-glossary-update-terms))
+        (org-glossary--propagate-buffer-updates path-spec)))))
+
+(defun org-glossary--update-buffers ()
+  "Update all live buffers in `org-glossary--paths-to-update'."
+  (dolist (path-spec org-glossary--paths-to-update)
+    (when-let ((buf (or (and (buffer-live-p path-spec) path-spec)
+                        (get-file-buffer (plist-get path-spec :file)))))
+      (with-current-buffer buf
+        (when org-glossary-mode
+          (org-glossary-update-terms)))))
+  (when org-glossary--path-update-timer
+    (cancel-timer org-glossary--path-update-timer)
+    (setq org-glossary--path-update-timer nil))
+  (setq org-glossary--paths-to-update nil))
+
 ;;; Export, general functionality
 
 (defvar-local org-glossary--current-export-spec nil)
@@ -1566,8 +1648,18 @@ This should only be run as an export hook."
     (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append))
    (t (font-lock-remove-keywords nil org-glossary--font-lock-keywords)
       (org-with-wide-buffer (font-lock-flush))))
-  (when org-glossary-mode
-    (org-glossary-update-terms)))
+  (if org-glossary-mode
+      (progn
+        (org-glossary-update-terms)
+        (org-glossary--register-buffer-dependencies)
+        (add-hook 'after-save-hook
+                  'org-glossary--detect-updates-and-propagate nil t)
+        (add-hook 'kill-buffer-hook
+                  'org-glossary--deregister-buffer-dependencies nil t))
+    (org-glossary--deregister-buffer-dependencies)
+    (remove-hook 'kill-buffer-hook
+                 'org-glossary--deregister-buffer-dependencies nil t))
+  org-glossary-mode)
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
