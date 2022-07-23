@@ -1557,11 +1557,11 @@ This should only be run as an export hook."
   (cond
    ((and org-glossary-mode org-glossary-automatic)
     (org-glossary--set-font-lock-keywords org-glossary-fontify-types-differently)
-    (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append)
-    (org-glossary-update-terms))
+    (font-lock-add-keywords nil org-glossary--font-lock-keywords 'append))
    (t (font-lock-remove-keywords nil org-glossary--font-lock-keywords)
-      (org-with-wide-buffer
-       (font-lock-flush)))))
+      (org-with-wide-buffer (font-lock-flush))))
+  (when org-glossary-mode
+    (org-glossary-update-terms)))
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
