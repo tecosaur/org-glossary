@@ -1714,7 +1714,7 @@ This should only be run as an export hook."
     (org-with-wide-buffer
      (font-lock-flush))))
 
-(defun org-glossary--get-extra-term-sources ()
+(defun org-glossary--get-extra-term-sources (&optional parse-tree)
   "Identify all applicable sources of extra terms for the current buffer.
 This combines locations listed in `org-glossary-global-terms' with
 local sources specified with \"#+glossary_sources: LOCATIONS\".
@@ -1739,7 +1739,7 @@ location."
     (org-babel-balanced-split
      (or (mapconcat
           #'identity
-          (org-element-map (org-element-parse-buffer) 'keyword
+          (org-element-map (or parse-tree (org-element-parse-buffer)) 'keyword
             (lambda (keyword)
               (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
                    (org-element-property :value keyword))))
