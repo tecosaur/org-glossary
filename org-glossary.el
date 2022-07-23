@@ -1737,11 +1737,13 @@ location."
           (concat fq-source " :only-contents t"))
          (t fq-source))))
     (org-babel-balanced-split
-     (or (org-element-map (org-element-parse-buffer) 'keyword
-           (lambda (keyword)
-             (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
-                  (org-element-property :value keyword)))
-           nil t)
+     (or (mapconcat
+          #'identity
+          (org-element-map (org-element-parse-buffer) 'keyword
+            (lambda (keyword)
+              (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
+                   (org-element-property :value keyword))))
+          " ")
          "")
      ?\s))))
 
