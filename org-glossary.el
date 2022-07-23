@@ -1864,10 +1864,11 @@ point will be used."
                (string-trim (org-element-interpret-data
                              (plist-get term-entry :value))))))
         (setq term-entry aliased-term))
-    (let ((def-file (plist-get term-entry :definition-file)))
-      (if (bufferp def-file)
-          (switch-to-buffer def-file)
-        (find-file def-file)))
+    (let ((defsource (plist-get term-entry :definition-file)))
+      (switch-to-buffer
+       (or (and (bufferp defsource) defsource)
+           (get-file-buffer defsource)
+           (find-file defsource))))
     (goto-char (plist-get term-entry :definition-pos))
     term-entry))
 
