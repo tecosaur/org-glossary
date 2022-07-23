@@ -358,10 +358,12 @@ TERM-GETTER will be called with three arguments: the term source, t, and `alread
               (org-glossary--include-once path-spec)
               (set-buffer-modified-p nil)
               (org-with-wide-buffer
-               (org-element-parse-buffer))))))
+               (org-element-parse-buffer)))))
+         (terms (org-glossary--extract-terms parse-tree)))
     (list :path path-spec
           :scan-time (current-time)
-          :terms (org-glossary--extract-terms parse-tree)
+          :terms terms
+          :terms-hash (sxhash terms)
           :included
           (mapcar
            (lambda (location)
@@ -370,7 +372,9 @@ TERM-GETTER will be called with three arguments: the term source, t, and `alread
            (org-element-map parse-tree 'keyword
              (lambda (kwd)
                (when (string= "INCLUDE" (org-element-property :key kwd))
-                 (org-element-property :value kwd))))))))
+                 (org-element-property :value kwd)))))
+          :extra-term-sources
+          (org-glossary--get-extra-term-sources parse-tree))))
 
 (defun org-glossary--complete-path-spec (&optional path-spec)
   "Given a tentative PATH-SPEC, try to get a proper one.
@@ -473,7 +477,9 @@ a plist of the form:
   (:path FILE-PATH-OR-URL
    :scan-time TIME-LIST
    :terms TERM-LIST
-   :included LIST-OF-PATH-SPECS)")
+   :terms-hash (sxhash TERM-LIST)
+   :included LIST-OF-PATH-SPECS
+   :extra-term-sources LIST-OF-PATH-STRINGS)")
 
 (defun org-glossary--get-terms-cached (&optional path-spec no-extra-sources already-included)
   "Obtain all known terms in the current buffer, using the cache.
