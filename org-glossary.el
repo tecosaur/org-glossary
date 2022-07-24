@@ -1695,7 +1695,8 @@ This should only be run as an export hook."
 
 (defun org-glossary--fontify-term ()
   "Fontify the matched term."
-  (let ((term-entry (org-glossary--quicklookup (match-string 0))))
+  (let ((term-entry (org-glossary--quicklookup (match-string 0)))
+        case-fold-search)
     (add-text-properties
      (match-beginning 0) (match-end 0)
      (nconc
@@ -1706,10 +1707,14 @@ This should only be run as an export hook."
                     help-echo org-glossary--help-echo-from-textprop
                     mouse-face org-glossary-substitution-term
                     display
-                    ,(string-trim
-                      (substring-no-properties
-                       (org-element-interpret-data
-                        (plist-get term-entry :value)))))
+                    ,(funcall
+                      (if (string-match-p "^[[:upper:]][^[:upper:]]+$"
+                                          (match-string 0))
+                          #'org-glossary--sentance-case #'identity)
+                      (string-trim
+                       (substring-no-properties
+                        (org-element-interpret-data
+                         (plist-get term-entry :value))))))
            '(face org-glossary-substitution-term)))
         (type `(face ,(or (alist-get type org-glossary-fontify-type-faces)
                           'org-glossary-term))))
