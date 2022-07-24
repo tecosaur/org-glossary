@@ -1098,7 +1098,8 @@ optional arguments:
       (push (cons ?K (number-to-string (plist-get canonical-term :key-nonce)))
             parameters))
     (when (string-match-p "%t" template)
-      (push (cons ?t (funcall (if capitalized-p #'capitalize #'identity)
+      (push (cons ?t (funcall (if capitalized-p #'org-glossary--sentance-case
+                                #'identity)
                               (plist-get term-entry
                                          (if plural-p :term-plural :term))))
             parameters))
@@ -1113,7 +1114,8 @@ optional arguments:
       (push (cons ?v
                   (let ((value-str
                          (org-export-data (plist-get canonical-term :value) info)))
-                    (funcall (if capitalized-p #'capitalize #'identity)
+                    (funcall (if capitalized-p #'org-glossary--sentance-case
+                               #'identity)
                              (if plural-p
                                  (let ((components (split-string value-str)))
                                    (setf (car (last components))
@@ -1139,6 +1141,10 @@ optional arguments:
                       extra-parameters))
             parameters))
     (format-spec template (nreverse parameters))))
+
+(defun org-glossary--sentance-case (s)
+  "Return a sentance-cased version of S."
+  (concat (string (upcase (aref s 0))) (substring s 1)))
 
 ;;; Export used term definitions
 
@@ -1463,7 +1469,7 @@ the :consume parameter extracted from KEYWORD."
        (and (stringp description)
             `((?t . ,(if (string= description org-glossary--index-stub-description)
                          "" description)))))
-    (funcall (if capitalized-p #'capitalize #'identity)
+    (funcall (if capitalized-p #'org-glossary--sentance-case #'identity)
              (funcall (if plural-p org-glossary-plural-function #'identity)
                       trm))))
 
