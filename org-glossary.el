@@ -2154,5 +2154,20 @@ point will be used."
           (insert (format "- %s :: %s" term-str definition) "\n")
         (insert "- " term-str "\n")))))
 
+;;; Eldoc
+
+(defun org-glossary--eldoc-function (&rest _)
+  "Return help-echo output for org-glossary term at point.
+
+This is intended as a :before-until advice for
+`org-eldoc-documentation-function'."
+  (and org-glossary-mode
+       (eq (get-text-property (point) 'help-echo)
+           #'org-glossary--help-echo-from-textprop)
+       (org-glossary--help-echo-from-textprop nil (current-buffer) (point))))
+
+(advice-add 'org-eldoc-documentation-function
+            :before-until 'org-glossary--eldoc-function)
+
 (provide 'org-glossary)
 ;;; org-glossary.el ends here
