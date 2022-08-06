@@ -400,6 +400,7 @@ The PATH-SPEC is formed with respect to the current buffer."
 (defun org-glossary--include-once (parameters)
   "Include content based on PARAMETERS."
   (unless (eq (plist-get parameters :env) 'literal)
+    (require 'ox)
     (let ((lines (plist-get parameters :lines))
           (file (plist-get parameters :file))
           (location (plist-get parameters :location))
