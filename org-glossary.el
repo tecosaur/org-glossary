@@ -958,7 +958,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
            (extras (mapcar #'org-glossary--parse-include-value
                            (plist-get term-cache :extra-term-sources))))
       (org-glossary--deregister-buffer-dependencies path-spec)
-      (dolist (dep-pspec (nconc extras included))
+      (dolist (dep-pspec (delete path-spec (nconc extras included)))
         (if-let ((dep-files (assoc dep-pspec org-glossary--path-dependencies)))
             (unless (member path-spec dep-files)
               (push path-spec (cdr dep-files)))
