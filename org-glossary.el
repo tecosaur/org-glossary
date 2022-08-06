@@ -688,7 +688,6 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
   (interactive (list org-glossary--terms nil t))
   (let ((terms-mrx (org-glossary--mrx-construct-from-terms terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
-        (case-fold-search nil)
         (start-time (float-time))
         (last-redisplay (float-time))
         terms-used element-context element-at-point)
