@@ -1668,7 +1668,8 @@ This should only be run as an export hook."
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurance of a term reference, for fontification."
-  (let (match-p exit element-at-point element-context)
+  (let ((search-spaces-regexp (and font-lock-multiline "[ \t\n][ \t]*"))
+        match-p exit element-at-point element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
       (setq exit (null (org-glossary--mrx-search-forward
                         org-glossary--term-mrx limit)))
