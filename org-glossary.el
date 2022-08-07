@@ -1794,9 +1794,9 @@ This should only be run as an export hook."
             (replace-regexp-in-string
              "^[Gg]ls\\(?:pl\\)?:" ""
              (buffer-substring-no-properties
-    (and term-entry (org-glossary--term-help-echo term-entry))))
               (or (previous-single-property-change (1+ pos) 'face) (point-min))
               (or (next-single-property-change pos 'face) (point-max))))))))
+    (and term-entry (org-glossary--term-help-echo term-entry no-squash))))
 
 ;;; Completion
 
@@ -2195,7 +2195,7 @@ This is intended as a :before-until advice for
   (and org-glossary-mode
        (eq (get-text-property (point) 'help-echo)
            #'org-glossary--help-echo-from-textprop)
-       (org-glossary--help-echo-from-textprop nil (current-buffer) (point))))
+       (org-glossary--help-echo-from-textprop nil (current-buffer) (point) t)))
 
 (advice-add 'org-eldoc-documentation-function
             :before-until 'org-glossary--eldoc-function)
