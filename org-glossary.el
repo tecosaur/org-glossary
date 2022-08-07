@@ -1765,9 +1765,9 @@ This should only be run as an export hook."
             (replace-regexp-in-string
              "^[Gg]ls\\(?:pl\\)?:" ""
              (buffer-substring-no-properties
-              (previous-single-property-change (1+ pos) 'face)
-              (next-single-property-change pos 'face)))))))
     (and term-entry (org-glossary--term-help-echo term-entry))))
+              (or (previous-single-property-change (1+ pos) 'face) (point-min))
+              (or (next-single-property-change pos 'face) (point-max))))))))
 
 ;;; Completion
 
