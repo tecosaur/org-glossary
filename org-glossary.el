@@ -529,9 +529,11 @@ the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
                           org-glossary--terms-cache)))))
     ;; If updating a source that could already be part of the quicklookup cache,
     ;; then clear the quicklookup cache to prevent outdated entries from persisting.
+    ;; We should also clear the help-echo cache while we're at it.
     (when (and (not (hash-table-empty-p org-glossary--quicklookup-cache))
                term-source-cached (not cache-valid))
-      (setq org-glossary--quicklookup-cache (make-hash-table :test #'equal)))
+      (setq org-glossary--quicklookup-cache (make-hash-table :test #'equal)
+            org-glossary--help-echo-cache (make-hash-table :test #'equal)))
     (setq already-included (nconc already-included (list path-spec)))
     (org-glossary--maybe-add-extra-terms
      #'org-glossary--get-terms-cached
@@ -1729,14 +1731,41 @@ This should only be run as an export hook."
                 ("RET" . org-glossary-goto-term-definition)
                 (return . org-glossary-goto-term-definition)))))))
 
-(defun org-glossary--term-help-echo (term-entry)
+(defvar-local org-glossary--help-echo-cache (make-hash-table :test #'equal)
+  "A hash table for quickly looking up fontified help-echo strings.")
+
+(defun org-glossary--term-help-echo-str (term-entry)
+  (with-temp-buffer
+    (let ((org-inhibit-startup t)
+          org-mode-hook)
+      (insert
+       (string-trim
+        (org-element-interpret-data
+         (plist-get term-entry :value))))
+      (when (looking-back "^[ \t]*#\\+end" (line-beginning-position))
+        (insert "\n"))
+      (org-do-remove-indentation)
+      (org-mode)
+      (font-lock-ensure)
+      (replace-regexp-in-string
+       org-link-any-re "\\3" (buffer-string)))))
+
+(defun org-glossary--term-help-echo-str-cached (term-entry)
+  (or (gethash term-entry org-glossary--help-echo-cache)
+      (puthash term-entry (org-glossary--term-help-echo-str term-entry)
+               org-glossary--help-echo-cache)))
+
+(defun org-glossary--term-help-echo (term-entry &optional no-squash)
   "Generate a help-echo string for TERM-ENTRY."
-  (let ((referenced-term
-         (or (plist-get term-entry :alias-for)
-             (org-glossary--quicklookup
-              (string-trim (substring-no-properties
-                            (org-element-interpret-data
-                             (plist-get term-entry :value))))))))
+  (let* ((referenced-term
+          (or (plist-get term-entry :alias-for)
+              (org-glossary--quicklookup
+               (string-trim (substring-no-properties
+                             (org-element-interpret-data
+                              (plist-get term-entry :value)))))))
+         (display-text
+          (org-glossary--term-help-echo-str-cached
+           (or referenced-term term-entry))))
     (format "(%s) %s %s"
             (propertize
              (symbol-name (plist-get (or referenced-term term-entry) :type))
@@ -1751,13 +1780,13 @@ This should only be run as an export hook."
                    (propertize
                     (plist-get referenced-term :term)
                     'face 'org-list-dt))))
-            (replace-regexp-in-string
-             "\s?\n\s*" " " ; flatten newline indentation
-             (string-trim
-              (org-element-interpret-data
-               (plist-get (or referenced-term term-entry) :value)))))))
+            (if no-squash
+                display-text
+              (replace-regexp-in-string
+               "\s?\n\s*" " " ; flatten newline indentation
+               display-text)))))
 
-(defun org-glossary--help-echo-from-textprop (_window object pos)
+(defun org-glossary--help-echo-from-textprop (_window object pos &optional no-squash)
   "Find the term reference at POS in OBJECT, and get the definition."
   (let ((term-entry
          (org-glossary--quicklookup
@@ -1815,7 +1844,8 @@ This should only be run as an export hook."
           org-glossary--terms (org-glossary--get-terms-cached)
           org-glossary--term-mrx
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
-          org-glossary--quicklookup-cache (make-hash-table :test #'equal))
+          org-glossary--quicklookup-cache (make-hash-table :test #'equal)
+          org-glossary--help-echo-cache (make-hash-table :test #'equal))
     (when (called-interactively-p)
       (org-glossary--term-status-message
        (mapcar (lambda (trm) (plist-get trm :term))
