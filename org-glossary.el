@@ -1667,7 +1667,7 @@ This should only be run as an export hook."
                   'org-glossary--deregister-buffer-dependencies nil t))
     (org-glossary--deregister-buffer-dependencies)
     (remove-hook 'kill-buffer-hook
-                 'org-glossary--deregister-buffer-dependencies nil t))
+                 'org-glossary--deregister-buffer-dependencies t))
   org-glossary-mode)
 
 (defun org-glossary--fontify-find-next (&optional limit)
