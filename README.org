@@ -3,7 +3,7 @@
 
 #+html: <p><img src="https://img.shields.io/badge/Emacs-27.1+-blueviolet.svg?style=flat-square&logo=GNU%20Emacs&logoColor=white">
 #+html: <img src="https://img.shields.io/badge/stage-%CE%B1,%20experimental-red?style=flat-square">
-#+html: <a href="https://www.buymeacoffee.com/tecosaur"><img src="https://img.shields.io/badge/Buy_me_a_coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black"></a></p>
+#+html: <a href="https://liberapay.com/tec"><img src="https://shields.io/badge/support%20my%20efforts-f6c915?logo=Liberapay&style=flat-square&logoColor=black"></a></p>
 
 * Functionality
 
