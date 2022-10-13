@@ -267,9 +267,32 @@ is non-nil."
   :type '(alist :key-type (symbol :tag "Type")
                 :value-type face))
 
+(defcustom org-glossary-snippet-fontication-hooks
+  ;; Known desirable hooks, if they exist.
+  (cl-remove-if-not
+   (lambda (h)
+     (memq h '(org-toggle-pretty-entities +org-pretty-mode
+               org-modern-mode org-glossary-mode)))
+   org-mode-hook)
+  "A stripped down version of `org-mode-hook' for fontification.
+This is bound as `org-mode-hook' during snippet/substitution fontification.
+It allows for expensive but unneeded hooks to be skipped.
+
+See also `org-glossary-fontify-displayed-substitute'."
+  :type '(repeat function))
+
 (defcustom org-glossary-display-substitute-value t
   "Whether to display substitutions as their value.
-Requires `org-glossary-fontify-types-differently' to be non-nil."
+Requires `org-glossary-fontify-types-differently' to be non-nil.
+
+See also `org-glossary-fontify-displayed-substitute'."
+  :type 'boolean)
+
+(defcustom org-glossary-fontify-displayed-substitute t
+  "Whether to fontify displayed substitutions values.
+Requires `org-glossary-display-substitute-value' to be non-nil.
+
+See also `org-glossary-snippet-fontication-hooks'."
   :type 'boolean)
 
 (defface org-glossary-term
@@ -1697,6 +1720,21 @@ This should only be run as an export hook."
           (setq exit t match-p t))))
     match-p))
 
+(defvar-local org-glossary--fontified-snippet-cache
+  (make-hash-table :test #'equal))
+
+(defun org-glossary--fontify-org-snippet (org-text)
+  "Fontify the string ORG-TEXT using `org-mode'."
+  (or (gethash org-text org-glossary--fontified-snippet-cache)
+      (puthash org-text
+               (with-temp-buffer
+                 (insert org-text)
+                 (let (org-mode-hook org-glossary-snippet-fontication-hooks)
+                   (org-mode))
+                 (font-lock-ensure)
+                 (buffer-string))
+               org-glossary--fontified-snippet-cache)))
+
 (defun org-glossary--fontify-term ()
   "Fontify the matched term."
   (let ((term-entry (org-glossary--quicklookup (match-string 0)))
@@ -1708,17 +1746,20 @@ This should only be run as an export hook."
         ('substitution
          (if org-glossary-display-substitute-value
              `(face org-glossary-substituted-value
-                    help-echo org-glossary--help-echo-from-textprop
-                    mouse-face org-glossary-substitution-term
-                    display
-                    ,(funcall
-                      (if (string-match-p "^[[:upper:]][^[:upper:]]+$"
-                                          (match-string 0))
-                          #'org-glossary--sentance-case #'identity)
-                      (string-trim
-                       (substring-no-properties
-                        (org-element-interpret-data
-                         (plist-get term-entry :value))))))
+               help-echo org-glossary--help-echo-from-textprop
+               mouse-face org-glossary-substitution-term
+               display
+               ,(funcall
+                 (if org-glossary-fontify-displayed-substitute
+                     #'org-glossary--fontify-org-snippet #'identity)
+                 (funcall
+                  (if (string-match-p "^[[:upper:]][^[:upper:]]+$"
+                                      (match-string 0))
+                      #'org-glossary--sentance-case #'identity)
+                  (string-trim
+                   (substring-no-properties
+                    (org-element-interpret-data
+                     (plist-get term-entry :value)))))))
            '(face org-glossary-substitution-term)))
         (type `(face ,(or (alist-get type org-glossary-fontify-type-faces)
                           'org-glossary-term))))
