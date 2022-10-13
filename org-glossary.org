@@ -371,7 +371,7 @@ as:
 + =M-x org-glossary-insert-term-reference= to view the list of currently defined
   terms, and perhaps insert a use.
 + In the case of /Text Substitutions/, displaying the replacement text on top of
-  the use.
+  the use, when ~org-glossary-display-substitute-value~ is non-nil.
 
 * Export configuration
 ** Setting export parameters

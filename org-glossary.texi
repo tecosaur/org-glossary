@@ -515,7 +515,7 @@ to go to the definition
 terms, and perhaps insert a use.
 @item
 In the case of @emph{Text Substitutions}, displaying the replacement text on top of
-the use.
+the use, when @code{org-glossary-display-substitute-value} is non-nil.
 @end itemize
 
 @node Export configuration
