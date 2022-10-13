@@ -46,15 +46,19 @@
 ;;; Code:
 
 (require 'org)
+(require 'org-element)
 
 (eval-when-compile
   (require 'cl-lib)
-  (require 'subr-x))
+  (require 'subr-x)
+  (require 'ox))
 
 (defgroup org-glossary nil
   "Defined terms and abbreviations in Org."
   :group 'org
   :prefix "org-glossary-")
+
+(defvar org-glossary--heading-names) ; For the byte-compiler.
 
 (defcustom org-glossary-headings
   '(("Glossary" . glossary)
@@ -108,12 +112,12 @@ grouping, and add the target type to the annotation instead."
 Each term should either be a string interpreted as an #+include
 keyword's value, or a plist of the form emitted by
 `org-glossary--parse-include-value'."
-  :type '(list (choice string plist)))
+  :type '(repeat (choice string plist)))
 
 (defcustom org-glossary-collection-root nil
   "A base path prefixed to any per-document glossary sources.
 If this is set to a directory, ensure that you include the trailing slash."
-  :type '(choice (const nil) string))
+  :type '(choice (const nil) (string :tag "Path")))
 
 (defvar-local org-glossary--extra-term-sources nil
   "A list of locations outside the current document that should be sourced from.
@@ -358,9 +362,14 @@ unless PATH-SPEC is non-nil and NO-EXTRA-SOURCES nil."
      already-included)))
 
 (defun org-glossary--maybe-add-extra-terms (term-getter term-set do-it-p &optional already-included)
-  "Apply TERM-GETTER to extra term sources and add to TERM-SET if non-nil DO-IT-P.
+  "Apply TERM-GETTER to extra term sources add them to TERM-SET.
 The extra terms sources are the elements of `org-glossary--extra-term-sources'.
-TERM-GETTER will be called with three arguments: the term source, t, and `already-included'."
+TERM-GETTER will be called with three arguments:
+- the term source
+- t
+- ALREADY-INCLUDED
+
+If DO-IT-P is nil, then nothing will be done and TERM-SET will be returned."
   (if do-it-p
       (let ((accumulation term-set))
         (dolist (term-source (cl-set-difference
@@ -517,13 +526,16 @@ a plist of the form:
    :included LIST-OF-PATH-SPECS
    :extra-term-sources LIST-OF-PATH-STRINGS)")
 
+(defvar org-glossary--quicklookup-cache) ; For the byte-compiler.
+(defvar org-glossary--help-echo-cache) ; For the byte-compiler.
+
 (defun org-glossary--get-terms-cached (&optional path-spec no-extra-sources already-included)
   "Obtain all known terms in the current buffer, using the cache.
 `org-glossary--extra-term-sources' will be used unless PATH-SPEC
 is non-nil and NO-EXTRA-SOURCES nil.
 
-If a source that could have contributed to the quicklookup cache is updated, then
-the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
+If a source that could have contributed to the quicklookup cache is updated,
+then the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
   (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (term-source-cached (assoc path-spec org-glossary--terms-cache))
          (cached-path (plist-get (cdr term-source-cached) :path))
@@ -656,6 +668,8 @@ side-effect when it is provided."
           :definition-pos (+ (org-element-property :begin item) 2)
           :extracted nil
           :uses nil)))
+
+(defvar org-glossary--category-heading-tag) ; For the byte-compiler.
 
 (defun org-glossary--entry-type-category (datum)
   "Determine whether DATUM is a glossary or acronym entry."
@@ -799,7 +813,7 @@ This is necessitated by problems when trying to apply
   Lisp error: (invalid-regexp \"Regular expression too big\")"
   (let ((match-start most-positive-fixnum) (match-stop -1)
         (case-fold-search case-insensitive)
-        the-match tag)
+        the-match match-stop tag)
     (dolist (t-pat tagged-patterns)
       (save-excursion
         (when (and (re-search-forward (cdr t-pat) limit t)
@@ -808,12 +822,12 @@ This is necessitated by problems when trying to apply
                             (> (match-end 0) match-stop))))
           (setq the-match (match-data)
                 match-start (match-beginning 0)
-                match-end (match-end 0)
+                match-stop (match-end 0)
                 tag (car t-pat)))))
     (set-match-data the-match)
     (and the-match
          (setq org-glossary--mrx-last-tag tag)
-         (goto-char match-end))))
+         (goto-char match-stop))))
 
 (defvar org-glossary--mrx-max-bin-size 800
   "The maximum number of strings that should be combined into a single regexp.
@@ -1051,7 +1065,8 @@ The actual update is performed by `org-glossary--update-buffers'."
 (defvar-local org-glossary--current-export-spec nil)
 
 (defun org-glossary--get-export-specs (backend)
-  "Determine the relevant export specs for BACKEND from `org-glossary-export-specs'."
+  "Determine the relevant export specs for BACKEND.
+The information is extracted from `org-glossary-export-specs'."
   (let* ((default-spec (alist-get t org-glossary-export-specs))
          (current-spec
           (or (cl-some
@@ -1176,9 +1191,10 @@ optional arguments:
 
 (defun org-glossary--print-terms (backend terms &optional types level duplicate-mentions)
   "Produce an org-mode AST defining TERMS for BACKEND.
-Do this for each of TYPES (by default: `org-glossary-default-print-parameters''s :type),
-producing a heading of level LEVEL (by default: 1). If LEVEL is set to 0,
-no heading is produced.
+Do this for each of TYPES (by default, the :type specified in
+`org-glossary-default-print-parameters'),producing a heading of level
+LEVEL (by default: 1). If LEVEL is set to 0, no heading is produced.
+
 Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (let ((terms-by-type
          (org-glossary--group-terms
@@ -1308,7 +1324,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
                   backend nil term-entry :backref-seperator))))))))
 
 (defun org-glossary--group-terms (terms predicate &optional include)
-  "Group TERMS according to PREDICATE, and only INCLUDE certain groups (if non-nil)."
+  "Group TERMS according to PREDICATE, and optionaly only INCLUDE certain groups."
   (let (groups grp)
     (dolist (trm terms)
       (setq grp (funcall predicate trm))
@@ -1367,7 +1383,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
 
 (defun org-glossary--extract-uses-in-region (terms begin end &optional types mark-extracted)
   "Extract uses of TERMS that occur between BEGIN and END.
-If TYPES is non-nil, the extracted entries shall be restricted instances of TYPES.
+If TYPES is non-nil, extracted entries shall be restricted instances of TYPES.
 If MARK-EXTRACTED is non-nil, extracted uses shall be marked as extracted."
   (let (region-terms region-term-uses)
     (mapc
@@ -1640,7 +1656,7 @@ This should only be run as an export hook."
         (goto-char (point-max))
         (insert "\n" (org-glossary--print-terms backend used-terms))))))
 
-(add-hook 'org-export-before-parsing-hook #'org-glossary--prepare-buffer)
+(add-hook 'org-export-before-parsing-functions #'org-glossary--prepare-buffer)
 
 ;;; Fontification
 
@@ -2176,7 +2192,7 @@ point will be used."
           (category (and (> (length type-category) 1) (cadr type-category))))
      (list term-str definition type category)))
   (unless (derived-mode-p 'org-mode)
-    (user-error "You need to be in `org-mode' to use org-glossary."))
+    (user-error "You need to be in `org-mode' to use org-glossary"))
   (when (symbolp type)
     (setq type (car (rassoc type org-glossary-headings))))
   (save-excursion
