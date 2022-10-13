@@ -1874,9 +1874,9 @@ This should only be run as an export hook."
              (puthash term-str term-entry
                       org-glossary--quicklookup-cache)))))
 
-(defun org-glossary-update-terms ()
+(defun org-glossary-update-terms (&optional show-info)
   "Update the currently known terms."
-  (interactive)
+  (interactive "p")
   (unless (derived-mode-p 'org-mode)
     (user-error "You need to be using `org-mode' to use org-glossary."))
   (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
@@ -1887,7 +1887,7 @@ This should only be run as an export hook."
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal)
           org-glossary--help-echo-cache (make-hash-table :test #'equal))
-    (when (called-interactively-p)
+    (when show-info
       (org-glossary--term-status-message
        (mapcar (lambda (trm) (plist-get trm :term))
                org-glossary--terms)
