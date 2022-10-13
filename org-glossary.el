@@ -43,6 +43,8 @@
 ;;
 ;; TODO support looking for usages of a term in other files, maybe?
 ;;
+;; TODO support plural forms in substitution display.
+;;
 ;;; Code:
 
 (require 'org)
