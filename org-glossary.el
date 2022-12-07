@@ -428,8 +428,9 @@ The PATH-SPEC is formed with respect to the current buffer."
   (or (and (stringp path-spec)
            (org-glossary--parse-include-value path-spec))
       path-spec
-      (org-glossary--parse-include-value
-       (buffer-file-name))
+      (and (buffer-file-name)
+           (org-glossary--parse-include-value
+            (format "%S" (buffer-file-name))))
       (current-buffer)))
 
 (defun org-glossary--include-once (parameters)
