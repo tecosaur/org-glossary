@@ -61,6 +61,7 @@
   :prefix "org-glossary-")
 
 (defvar org-glossary--heading-names) ; For the byte-compiler.
+(defvar org-glossary-mode)           ; For the byte-compiler.
 
 (defcustom org-glossary-headings
   '(("Glossary" . glossary)
