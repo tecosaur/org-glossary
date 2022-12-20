@@ -378,9 +378,15 @@ If DO-IT-P is nil, then nothing will be done and TERM-SET will be returned."
                               (mapcar #'org-glossary--complete-path-spec
                                       org-glossary--extra-term-sources)
                               already-included))
-          (setq accumulation
-                (append accumulation
-                        (funcall term-getter term-source t already-included))))
+          (if (or (bufferp term-source)
+                  (file-exists-p (plist-get term-source :file)))
+              (setq accumulation
+                    (append accumulation
+                            (funcall term-getter term-source t already-included)))
+            (display-warning
+             '(org-glossary missing-source)
+             (format "Glossary source `%s' does not exist! Skipping..."
+                     (plist-get term-source :file)))))
         accumulation)
     term-set))
 
