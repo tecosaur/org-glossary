@@ -820,9 +820,10 @@ the longest match will be used.
 This is necessitated by problems when trying to apply
 `regexp-opt' to many items, which can trigger:
   Lisp error: (invalid-regexp \"Regular expression too big\")"
-  (let ((match-start most-positive-fixnum) (match-stop -1)
+  (let ((match-start most-positive-fixnum)
+        (match-stop -1)
         (case-fold-search case-insensitive)
-        the-match match-stop tag)
+        the-match tag)
     (dolist (t-pat tagged-patterns)
       (save-excursion
         (when (and (re-search-forward (cdr t-pat) limit t)
