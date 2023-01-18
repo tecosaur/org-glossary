@@ -917,10 +917,11 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
          (org-element-property :begin link)
          (- (org-element-property :end link)
             (org-element-property :post-blank link))
-         (lambda () (org-element-link-interpreter
-                link
-                (and contents-begin contents-end
-                     (buffer-substring contents-begin contents-end))))))
+         (lambda ()
+           (org-element-link-interpreter
+            link
+            (and contents-begin contents-end
+                 (buffer-substring contents-begin contents-end))))))
       term-entry)))
 
 (defun org-glossary--update-plain (terms &optional no-modify no-number)
@@ -1691,13 +1692,13 @@ This should only be run as an export hook."
                (0 (org-glossary--fontify-term))))
           '((org-glossary--fontify-find-next
              (0 '(face org-glossary-term
-                       help-echo org-glossary--help-echo-from-textprop
-                       mouse-face (:inverse-video t)
-                       keymap (keymap
-                               (follow-link . mouse-face)
-                               (mouse-2 . org-glossary-goto-term-definition)
-                               ("RET" . org-glossary-goto-term-definition)
-                               (return . org-glossary-goto-term-definition)))
+                  help-echo org-glossary--help-echo-from-textprop
+                  mouse-face (:inverse-video t)
+                  keymap (keymap
+                          (follow-link . mouse-face)
+                          (mouse-2 . org-glossary-goto-term-definition)
+                          ("RET" . org-glossary-goto-term-definition)
+                          (return . org-glossary-goto-term-definition)))
                 t)))))
   per-term-p)
 
