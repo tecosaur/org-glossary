@@ -1080,12 +1080,16 @@ The actual update is performed by `org-glossary--update-buffers'."
 The information is extracted from `org-glossary-export-specs'."
   (let* ((default-spec (alist-get t org-glossary-export-specs))
          (current-spec
-          (or (cl-some
-               (lambda (export-spec)
-                 (when (org-export-derived-backend-p backend (car export-spec))
-                   (cdr export-spec)))
-               org-glossary-export-specs)
-              default-spec))
+          (cl-loop for back = (if (symbolp backend)
+                                  (org-export-get-backend backend)
+                                backend)
+                   then (org-export-get-backend
+                         (org-export-backend-parent
+                          back))
+                   unless back return default-spec
+                   for spec = (alist-get (org-export-backend-name back)
+                                         org-glossary-export-specs)
+                   when spec return spec))
          (default-template
            (org-combine-plists (alist-get t default-spec)
                                (alist-get t current-spec)))
