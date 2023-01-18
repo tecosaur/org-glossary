@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: abbrev docs tools
 ;; Homepage: https://github.com/tecosaur/org-glossary
-;; Package-Requires: ((emacs "27.1") (org "9.6"))
+;; Package-Requires: ((emacs "28.1") (org "9.6"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
