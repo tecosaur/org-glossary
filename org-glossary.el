@@ -1111,6 +1111,7 @@ The information is extracted from `org-glossary-export-specs'."
 Specifically, for each :PROPERTY VALUE pair of PROPERTY-VALUE-PAIRS, that
 PROPERTY is set to VALUE within the TYPE list of the BACKEND list in
 `org-glossary-export-specs'."
+  (declare (indent 2))
   (while property-value-pairs
     (setf (alist-get type (alist-get backend org-glossary-export-specs))
           (plist-put (alist-get type (alist-get backend org-glossary-export-specs))

@@ -563,17 +563,16 @@ In this example we could alternatively set =:definition-structure= to a function
 to avoid the =\ifnum%n>0= LaTeX switch.
 
 #+begin_example
-(org-glossary-set-export-spec
- 'latex t :definition-structure
- (lambda (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
-   (org-glossary--export-template
-    (if (plist-get term-entry :uses)
-        "*%d*\\emsp{}%v\\ensp{}@@latex:\\labelcpageref{@@%b@@latex:}@@\n"
-      "*%d*\\emsp{}%v\n")
-    backend info term-entry ref-index
-    plural-p capitalized-p extra-parameters)))
+(org-glossary-set-export-spec 'latex t
+  :definition-structure
+  (lambda (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
+    (org-glossary--export-template
+     (if (plist-get term-entry :uses)
+         "*%d*\\emsp{}%v\\ensp{}@@latex:\\labelcpageref{@@%b@@latex:}@@\n"
+       "*%d*\\emsp{}%v\n")
+     backend info term-entry ref-index
+     plural-p capitalized-p extra-parameters)))
 #+end_example
-
 
 This allows for any change in other backends or the defaults you're not
 particularly attached to from freely updating.
