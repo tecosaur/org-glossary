@@ -576,3 +576,29 @@ to avoid the =\ifnum%n>0= LaTeX switch.
 
 This allows for any change in other backends or the defaults you're not
 particularly attached to from freely updating.
+
+** Adding a new export backend
+
+Adding a new export spec is as easy as pushing a spec list to
+~org-glossary-export-specs~, for example should we want to add an =ox-md= backend we
+could do this:
+
+#+begin_example
+(push '(md (t :use "[%t](#gls-%K)"
+              :definition "%t {#gls-%K}"
+              :definition-structure "%d\n\\colon{} %v [%n uses]\n"))
+      org-glossary-export-specs)
+#+end_example
+
+We need to remember to use =\colon{}= instead of =:= to avoid it being interpreted
+as Org fixed-width syntax.
+
+Alternatively, we could use ~org-glossary-set-export-spec~, which has the
+advantage of being idempotent, and I would argue a little clearer.
+
+#+begin_example
+(org-glossary-set-export-spec 'md t
+  :use "[%t](#gls-%K)"
+  :definition "%t {#gls-%K}"
+  :definition-structure "%d\n\\colon{} %v [%n uses]\n")
+#+end_example
