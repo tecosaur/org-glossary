@@ -172,7 +172,7 @@ at least three terms that start with the same letter."
                      :definition-structure ""
                      :category-heading ""
                      :letter-heading ""))
-    (latex (t :use "\\hyperlink{gls-%K}{\\label{gls-%K-use-%r}%t}"
+    (latex (t :use "\\protect\\hyperlink{gls-%K}{\\label{gls-%K-use-%r}%t}"
               :definition "\\hypertarget{gls-%K}{%t}"
               :backref "\\pageref{gls-%K-use-%r}"))
     (html (t :use "<a class=\"org-gls\" href=\"#gls.%K\" id=\"glsr.%K.%r\">%t</a>"
