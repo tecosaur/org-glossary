@@ -657,12 +657,7 @@ side-effect when it is provided."
                          (org-element-lineage item '(headline))))
          (item-contents (and (org-element-property :tag item)
                              (org-element-contents item)))
-         (value (mapcar
-                 #'org-element-extract-element
-                 (if (and (= (length item-contents) 1)
-                          (eq (caar item-contents) 'paragraph))
-                     (org-element-contents (car item-contents))
-                   item-contents))))
+         (value (mapcar #'org-element-extract-element item-contents)))
     (list :key key
           :key-plural (and (not (string-empty-p key-plural))
                            (not (string= key key-plural))
@@ -1171,7 +1166,7 @@ optional arguments:
                (string-match-p "%v" template))
       (push (cons ?v
                   (let ((value-str
-                         (org-export-data (plist-get canonical-term :value) info)))
+                         (org-glossary--export-term canonical-term info)))
                     (funcall (if capitalized-p #'org-glossary--sentance-case
                                #'identity)
                              (if plural-p
@@ -1199,6 +1194,30 @@ optional arguments:
                       extra-parameters))
             parameters))
     (format-spec template (nreverse parameters))))
+
+(defun org-glossary--export-term (term-entry info)
+  "When TERM-ENTRY's :value is non-nil, return the exported value using INFO.
+If the :value has not been exported before, `org-export-filter-apply-functions'
+is applied to the :value first, and the result is cached.
+
+Should :value consist of a single paragraph, its contents are
+exported in place of the paragraph itself."
+  (when-let ((value (plist-get term-entry :value)))
+    (or (gethash value (plist-get info :exported-data))
+        (puthash value
+                 (let ((filtered-value
+                        (org-export-filter-apply-functions
+                         (plist-get info :filter-parse-tree)
+                         value info)))
+                   (org-export-data
+                    (if (and (= (length filtered-value) 1)
+                             (eq (org-element-type (car filtered-value))
+                                 'paragraph))
+                        (mapcar #'org-element-extract-element
+                                (org-element-contents (car filtered-value)))
+                      filtered-value)
+                    info))
+                 (plist-get info :exported-data)))))
 
 (defun org-glossary--sentance-case (s)
   "Return a sentance-cased version of S."
