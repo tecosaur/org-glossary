@@ -79,7 +79,13 @@ to update `org-glossary--heading-names' appropriately."
   :set (lambda (symbol value)
          (setq org-glossary--heading-names
                (mapcar #'car value))
-         (set-default-toplevel-value symbol value)))
+         (set-default-toplevel-value symbol value))
+  :safe (lambda (value)
+          (while (and (consp (car-safe value))
+                      (stringp (caar value))
+                      (symbolp (cdar value))
+                      (setq value (cdr value))))
+          (null value)))
 
 (defvar org-glossary--heading-names
   (mapcar #'car org-glossary-headings)
@@ -88,11 +94,14 @@ to update `org-glossary--heading-names' appropriately."
 (defcustom org-glossary-toplevel-only t
   "Whether all glossary definition sections must be toplevel.
 If nil, they will be recognised anywhere in the document."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-automatic t
   "Pick up on terms in plain text."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
+
 
 (defcustom org-glossary-plural-function #'org-glossary-english-plural
   "A function which generates the plural form of a word."
@@ -100,14 +109,16 @@ If nil, they will be recognised anywhere in the document."
 
 (defcustom org-glossary-canonicalise-aliases nil
   "Whether aliases should be canonicalised."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-group-ui t
   "Group term definitions by type.
 
 In practice, if using Emacs 28, this allows you to turn off
 grouping, and add the target type to the annotation instead."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-global-terms nil
   "A list of globally availible term sources.
@@ -120,7 +131,8 @@ keyword's value, or a plist of the form emitted by
 (defcustom org-glossary-collection-root nil
   "A base path prefixed to any per-document glossary sources.
 If this is set to a directory, ensure that you include the trailing slash."
-  :type '(choice (const nil) (string :tag "Path")))
+  :type '(choice (const nil) (string :tag "Path"))
+  :safe (lambda (value) (or (null value) (stringp value))))
 
 (defvar-local org-glossary--extra-term-sources nil
   "A list of locations outside the current document that should be sourced from.
@@ -148,7 +160,11 @@ before the :letter-heading templates of
 For instance, with the default value of \\=(12 . 3) the terms
 must start with at least 12 different letters, and there must be
 at least three terms that start with the same letter."
-  :type '(cons integer integer))
+  :type '(cons integer integer)
+  :safe (lambda (value)
+          (and (consp value)
+               (numberp (car value))
+               (numberp (cdr value)))))
 
 (defcustom org-glossary-export-specs
   '((t (t :use "%t"
@@ -261,7 +277,8 @@ TODO rewrite for clarity."
 (defcustom org-glossary-fontify-types-differently t
   "Whether to use the org-glossary-TYPE-term faces.
 Or just use the org-glossary-term face for everything."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-fontify-type-faces
   '((glossary . org-glossary-glossary-term)
@@ -272,7 +289,14 @@ Or just use the org-glossary-term face for everything."
 This only applies when `org-glossary-fontify-types-differently'
 is non-nil."
   :type '(alist :key-type (symbol :tag "Type")
-                :value-type face))
+                :value-type face)
+  :safe (lambda (value)
+          (while (and (consp (car-safe value))
+                      (symbolp (caar value))
+                      (or (symbolp (cdar value))
+                          (listp (cdar value)))
+                      (setq value (cdr value))))
+          (null value)))
 
 (defcustom org-glossary-snippet-fontication-hooks
   ;; Known desirable hooks, if they exist.
@@ -293,14 +317,16 @@ See also `org-glossary-fontify-displayed-substitute'."
 Requires `org-glossary-fontify-types-differently' to be non-nil.
 
 See also `org-glossary-fontify-displayed-substitute'."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-fontify-displayed-substitute t
   "Whether to fontify displayed substitutions values.
 Requires `org-glossary-display-substitute-value' to be non-nil.
 
 See also `org-glossary-snippet-fontication-hooks'."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defface org-glossary-term
   '((t :inherit (org-agenda-date-today org-link) :weight normal))
