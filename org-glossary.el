@@ -707,7 +707,7 @@ side-effect when it is provided."
 (defvar org-glossary--category-heading-tag) ; For the byte-compiler.
 
 (defun org-glossary--entry-type-category (datum)
-  "Determine whether DATUM is a glossary or acronym entry."
+  "Determine which glossary category DATUM belongs to."
   (cond
    ((null datum) nil)
    ((eq (org-element-type datum) 'org-data) nil)
@@ -1546,19 +1546,19 @@ the :consume parameter extracted from KEYWORD."
                          :help-echo #'org-glossary--help-echo-from-textprop)
 
 (defun org-glossary--link-export-gls (index-term description backend info)
-  "Export a gls link to term index-term with BACKEND."
+  "Export a gls link to term INDEX-TERM with BACKEND."
   (org-glossary--link-export backend info index-term description nil nil))
 
 (defun org-glossary--link-export-glspl (index-term description backend info)
-  "Export a glspl link to term index-term with BACKEND."
+  "Export a glspl link to term INDEX-TERM with BACKEND."
   (org-glossary--link-export backend info index-term description t nil))
 
 (defun org-glossary--link-export-Gls (index-term description backend info)
-  "Export a Gls link to term index-term with BACKEND."
+  "Export a Gls link to term INDEX-TERM with BACKEND."
   (org-glossary--link-export backend info index-term description nil t))
 
 (defun org-glossary--link-export-Glspl (index-term description backend info)
-  "Export a Glspl link to term index-term with BACKEND."
+  "Export a Glspl link to term INDEX-TERM with BACKEND."
   (org-glossary--link-export backend info index-term description t t))
 
 (defconst org-glossary--index-stub-description
