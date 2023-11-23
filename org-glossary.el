@@ -102,6 +102,10 @@ If nil, they will be recognised anywhere in the document."
   :type 'boolean
   :safe #'booleanp)
 
+(defcustom org-glossary-skip-headings t
+  "Skip headings when detecting instances of terms in plain text."
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-plural-function #'org-glossary-english-plural
   "A function which generates the plural form of a word."
@@ -785,7 +789,8 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                   element-context (org-element-context element-at-point)))
           (cond
            ((or (org-glossary--within-definition-p element-context)
-                (eq 'headline (org-element-type element-at-point))
+                (and org-glossary-skip-headings
+                     (eq 'headline (org-element-type element-at-point)))
                 (and (eq 'keyword (org-element-type element-at-point))
                      (not (member (org-element-property :key element-at-point)
                                   org-element-parsed-keywords))))
