@@ -264,7 +264,7 @@ definitions.
 If using cleverref with LaTeX, making use of the \\labelcpageref
 command like so is recommended:
 
-  (org-glossary-set-export-spec 'latex t
+  (org-glossary-set-export-spec \\='latex t
     :backref \"gls-%k-use-%r\"
     :backref-seperator \",\"
     :definition-structure
@@ -378,7 +378,10 @@ Set to nil to disable automatic update propagation."
 (defun org-glossary--get-terms (&optional path-spec no-extra-sources already-included)
   "Obtain all known terms in the current buffer.
 Terms from `org-glossary--extra-term-sources' will be added
-unless PATH-SPEC is non-nil and NO-EXTRA-SOURCES nil."
+unless PATH-SPEC is non-nil and NO-EXTRA-SOURCES nil.
+
+ALREADY-INCLUDED should be a list of paths specs that are already
+included, and so should be skipped."
   (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (term-source
           (and (not (member path-spec already-included))
@@ -469,6 +472,9 @@ The PATH-SPEC is formed with respect to the current buffer."
            (org-glossary--parse-include-value
             (format "%S" (buffer-file-name))))
       (current-buffer)))
+
+(declare-function org-export--prepare-file-contents "ox")
+(declare-function org-export--inclusion-absolute-lines "ox")
 
 (defun org-glossary--include-once (parameters)
   "Include content based on PARAMETERS."
@@ -573,6 +579,9 @@ a plist of the form:
   "Obtain all known terms in the current buffer, using the cache.
 `org-glossary--extra-term-sources' will be used unless PATH-SPEC
 is non-nil and NO-EXTRA-SOURCES nil.
+
+ALREADY-INCLUDED should be a list of paths specs that are already
+included, and so should be skipped.
 
 If a source that could have contributed to the quicklookup cache is updated,
 then the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
@@ -868,10 +877,16 @@ This is necessitated by problems when trying to apply
 
 (defvar org-glossary--mrx-max-bin-size 800
   "The maximum number of strings that should be combined into a single regexp.
-Larger is better, however typically 'invalid-regexp \"Regular
-expression too big\"' is seen with around 1000+ terms.")
+Larger is better, however typically \"invalid-regexp Regular
+expression too big\" is seen with around 1000+ terms.")
 
 (defun org-glossary--mrx-construct (&rest tagged-strings)
+  "Create a multi-regexp alist from TAGGED-STRINGS.
+For each list in TAGGED-STRINGS, the first value will be
+extracted and used as the alist keys, and the rest of the values
+fed into `regexp-opt'.
+
+The final alist may have multiple entries with the same key."
   (let (bins accumulated (n 0))
     (dolist (tag-strs tagged-strings)
       (dolist (str (delete-dups (sort (copy-sequence (cdr tag-strs)) #'string<)))
@@ -1013,7 +1028,11 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
   (plist-put term-entry :uses nil))
 
 (defun org-glossary--term-replacement (term-entry &optional index plural-p capitalized-p)
-  "Construct a string refering to the TERM-ENTRY"
+  "Construct a string refering to the TERM-ENTRY.
+INDEX, if non-nil should be the term index number.
+
+PLURAL-P and CAPITALIZED-P should indicate whether the entry is
+plural and/or capitalized, respectively."
   (org-element-interpret-data
    `(link
      (:type ,(cond
@@ -1225,6 +1244,8 @@ optional arguments:
                       extra-parameters))
             parameters))
     (format-spec template (nreverse parameters))))
+
+(declare-function org-export-filter-apply-functions "ox")
 
 (defun org-glossary--export-term (term-entry info)
   "When TERM-ENTRY's :value is non-nil, return the exported value using INFO.
@@ -1961,7 +1982,7 @@ This should only be run as an export hook."
   "Update the currently known terms."
   (interactive "p")
   (unless (derived-mode-p 'org-mode)
-    (user-error "You need to be using `org-mode' to use org-glossary."))
+    (user-error "You need to be using `org-mode' to use org-glossary"))
   (let ((initial-terms (mapcar (lambda (trm) (plist-get trm :term))
                                org-glossary--terms)))
     (setq org-glossary--extra-term-sources (org-glossary--get-extra-term-sources)
