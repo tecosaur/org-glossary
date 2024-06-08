@@ -94,6 +94,10 @@ If nil, they will be recognised anywhere in the document."
   "Pick up on terms in plain text."
   :type 'boolean)
 
+(defcustom org-glossary-autodetect-in-headings nil
+  "Whether `org-glossary-automatic' should apply in headings."
+  :type 'boolean)
+
 (defcustom org-glossary-plural-function #'org-glossary-english-plural
   "A function which generates the plural form of a word."
   :type 'function)
@@ -759,7 +763,8 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                   element-context (org-element-context element-at-point)))
           (cond
            ((or (org-glossary--within-definition-p element-context)
-                (eq 'headline (org-element-type element-at-point))
+                (and (not org-glossary-autodetect-in-headings)
+                     (eq 'headline (org-element-type element-at-point)))
                 (and (eq 'keyword (org-element-type element-at-point))
                      (not (member (org-element-property :key element-at-point)
                                   org-element-parsed-keywords))))
@@ -1756,7 +1761,8 @@ This should only be run as an export hook."
         (setq element-at-point (org-element-at-point)
               element-context (org-element-context element-at-point))
         (when (and (not exit)
-                   (not (eq 'headline (org-element-type element-at-point)))
+                   (not (and (not org-glossary-autodetect-in-headings)
+                             (eq 'headline (org-element-type element-at-point))))
                    (memq 'link (org-element-restriction element-context))
                    (if (eq 'keyword (org-element-type element-at-point))
                        (member (org-element-property :key element-at-point)

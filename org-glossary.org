@@ -305,8 +305,10 @@ org-glossary-update-terms= first).
 
 Note that as Org Glossary relies on links, recognised usages can only occur in
 places where a link is appropriate (i.e. not inside a source block, verbatim
-text, or another link, etc.). In addition terms in headings are ignored, as this
-is considered broadly desirable.
+text, or another link, etc.). The variable ~org-glossary-autodetect-in-headings~
+determines whether terms in headings are automatically linked. By default, this
+is off and headings are ignored, since this behaviour is generally seen as
+undesirable.
 
 In addition to all this, there's a bit of special behaviour for indexing. As
 you can discuss a topic without explicitly stating it, we support
