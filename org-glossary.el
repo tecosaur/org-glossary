@@ -88,15 +88,18 @@ to update `org-glossary--heading-names' appropriately."
 (defcustom org-glossary-toplevel-only t
   "Whether all glossary definition sections must be top-level.
 If nil, they will be recognised anywhere in the document."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-automatic t
   "Pick up on terms in plain text."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-autodetect-in-headings nil
   "Whether `org-glossary-automatic' should apply in headings."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-plural-function #'org-glossary-english-plural
   "A function which generates the plural form of a word."
@@ -104,14 +107,16 @@ If nil, they will be recognised anywhere in the document."
 
 (defcustom org-glossary-canonicalise-aliases nil
   "Whether aliases should be canonicalised."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-group-ui t
   "Group term definitions by type.
 
 In practice, if using Emacs 28, this allows you to turn off
 grouping, and add the target type to the annotation instead."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-global-terms nil
   "A list of globally available term sources.
@@ -265,7 +270,8 @@ TODO rewrite for clarity."
 (defcustom org-glossary-fontify-types-differently t
   "Whether to use the org-glossary-TYPE-term faces.
 Or just use the org-glossary-term face for everything."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-fontify-type-faces
   '((glossary . org-glossary-glossary-term)
@@ -297,14 +303,16 @@ See also `org-glossary-fontify-displayed-substitute'."
 Requires `org-glossary-fontify-types-differently' to be non-nil.
 
 See also `org-glossary-fontify-displayed-substitute'."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-glossary-fontify-displayed-substitute t
   "Whether to fontify displayed substitutions values.
 Requires `org-glossary-display-substitute-value' to be non-nil.
 
 See also `org-glossary-snippet-fontication-hooks'."
-  :type 'boolean)
+  :type 'boolean
+  :safe #'booleanp)
 
 (defface org-glossary-term
   '((t :inherit (org-agenda-date-today org-link) :weight normal))
