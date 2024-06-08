@@ -327,7 +327,7 @@ See also `org-glossary-snippet-fontication-hooks'."
   "Face used for term references.")
 
 (defface org-glossary-substituted-value
-  '((t :inherit default))
+  '((t))
   "Face used for substitution values.")
 
 (defvar-local org-glossary--terms nil
@@ -1797,30 +1797,35 @@ This should only be run as an export hook."
   "Fontify the matched term."
   (let ((term-entry (org-glossary--quicklookup (match-string 0)))
         case-fold-search)
+    (font-lock-prepend-text-property
+     (match-beginning 0) (match-end 0)
+     'face
+     (pcase (plist-get term-entry :type)
+       ('substitution
+        (if org-glossary-display-substitute-value
+            'org-glossary-substituted-value
+          'org-glossary-substitution-term))
+       (type
+        (or (alist-get type org-glossary-fontify-type-faces)
+            'org-glossary-term))))
     (add-text-properties
      (match-beginning 0) (match-end 0)
      (nconc
-      (pcase (plist-get term-entry :type)
-        ('substitution
-         (if org-glossary-display-substitute-value
-             `(face org-glossary-substituted-value
-               help-echo org-glossary--help-echo-from-textprop
-               mouse-face org-glossary-substitution-term
-               display
-               ,(funcall
-                 (if org-glossary-fontify-displayed-substitute
-                     #'org-glossary--fontify-org-snippet #'identity)
-                 (funcall
-                  (if (string-match-p "^[[:upper:]][^[:upper:]]+$"
-                                      (match-string 0))
-                      #'org-glossary--sentance-case #'identity)
-                  (string-trim
-                   (substring-no-properties
-                    (org-element-interpret-data
-                     (plist-get term-entry :value)))))))
-           '(face org-glossary-substitution-term)))
-        (type `(face ,(or (alist-get type org-glossary-fontify-type-faces)
-                          'org-glossary-term))))
+      (and (eq (plist-get term-entry :type) 'substitution)
+           org-glossary-display-substitute-value
+           `(mouse-face org-glossary-substitution-term
+             display
+             ,(funcall
+               (if org-glossary-fontify-displayed-substitute
+                   #'org-glossary--fontify-org-snippet #'identity)
+               (funcall
+                (if (string-match-p "^[[:upper:]][^[:upper:]]+$"
+                                    (match-string 0))
+                    #'org-glossary--sentance-case #'identity)
+                (string-trim
+                 (substring-no-properties
+                  (org-element-interpret-data
+                   (plist-get term-entry :value))))))))
       `(help-echo
         org-glossary--help-echo-from-textprop
         mouse-face (:inverse-video t)
