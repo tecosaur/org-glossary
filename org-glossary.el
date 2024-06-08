@@ -27,7 +27,7 @@
 ;; something vertico + maginalia style
 ;;
 ;; TODO M-x org-glossary-find-expanded-terms
-;; this would be primaraly useful for acronyms.
+;; this would be primarily useful for acronyms.
 ;;
 ;; REVIEW maybe support generating the glossary/acronym etc.
 ;; in the file, like org-toc.?
@@ -68,9 +68,9 @@
     ("Acronyms" . acronym)
     ("Index" . index)
     ("Text Substitutions" . substitution))
-  "An alist of special heading names and their correspanding type.
+  "An alist of special heading names and their corresponding type.
 During export, all matching headings will be removed in their
-entirity (including subtrees).
+entirety (including subtrees).
 
 If setting this outside of the customisation interface, be sure
 to update `org-glossary--heading-names' appropriately."
@@ -83,10 +83,10 @@ to update `org-glossary--heading-names' appropriately."
 
 (defvar org-glossary--heading-names
   (mapcar #'car org-glossary-headings)
-  "The heading names which correspand to a glossary type.")
+  "The heading names which correspond to a glossary type.")
 
 (defcustom org-glossary-toplevel-only t
-  "Whether all glossary definition sections must be toplevel.
+  "Whether all glossary definition sections must be top-level.
 If nil, they will be recognised anywhere in the document."
   :type 'boolean)
 
@@ -114,7 +114,7 @@ grouping, and add the target type to the annotation instead."
   :type 'boolean)
 
 (defcustom org-glossary-global-terms nil
-  "A list of globally availible term sources.
+  "A list of globally available term sources.
 
 Each term should either be a string interpreted as an #+include
 keyword's value, or a plist of the form emitted by
@@ -396,7 +396,7 @@ If DO-IT-P is nil, then nothing will be done and TERM-SET will be returned."
     term-set))
 
 (defun org-glossary--get-terms-oneshot (&optional path-spec)
-  "Optain all terms defined in PATH-SPEC."
+  "Obtain all terms defined in PATH-SPEC."
   (let* ((path-spec (org-glossary--complete-path-spec path-spec))
          (path-buffer
           (cond
@@ -701,7 +701,7 @@ side-effect when it is provided."
    (t (org-glossary--entry-type-category (org-element-lineage datum '(headline))))))
 
 (defvar org-glossary--category-heading-tag "category"
-  "The tag signifying that the heading correspands to a category of terms.")
+  "The tag signifying that the heading corresponds to a category of terms.")
 
 (defun org-glossary--identify-alias-terms (terms)
   "Search for aliases in TERMS, and update term entries accordingly."
@@ -728,7 +728,7 @@ side-effect when it is provided."
 ;;; Term usage
 
 (defun org-glossary-apply-terms (terms &optional no-modify no-number keep-unused)
-  "Replace occurances of the TERMS with links.
+  "Replace occurrences of the TERMS with links.
 This returns a copy of TERMS with references recorded in :uses.
 
 When NO-MODIFY is non-nil, neither buffer content nor TERMS will be modified.
@@ -1458,7 +1458,7 @@ If MARK-EXTRACTED is non-nil, extracted uses shall be marked as extracted."
    (plist-get parameters :all)))
 
 (defun org-glossary--expand-print-keyword (backend terms keyword)
-  "Call `org-glossary--expand-print' with paramaters and terms based on KEYWORD.
+  "Call `org-glossary--expand-print' with parameters and terms based on KEYWORD.
 BACKEND is passed through unmodified, but TERMS may be modified depending on
 the :consume parameter extracted from KEYWORD."
   (let ((heading (org-element-lineage keyword '(headline org-data)))
