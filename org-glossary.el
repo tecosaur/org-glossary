@@ -893,8 +893,9 @@ expression too big\"' is seen with around 1000+ terms.")
     (if (and (eq 'headline (org-element-type datum))
              (org-glossary--definition-heading-p datum))
         t
-      (org-glossary--within-definition-p
-       (save-match-data (org-element-lineage datum '(headline)))))))
+      (save-match-data
+        (org-glossary--within-definition-p
+         (org-element-lineage datum '(headline)))))))
 
 (defun org-glossary--definition-heading-p (heading)
   "Whether HEADING is recognised as a definition heading."
