@@ -576,7 +576,9 @@ then the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
                         (not ; scan time >= mtime (scan time !< mtime)
                          (time-less-p (plist-get (cdr term-source-cached) :scan-time)
                                       (file-attribute-modification-time
-                                       (file-attributes cached-file))))))))
+                                       (file-attributes cached-file))))))
+               (not (and (equal (buffer-file-name) cached-file)
+                         (not (plist-get (cdr term-source-cached) :terms))))))
          (term-source
           (or (and (member path-spec already-included)
                    '(:terms nil))
