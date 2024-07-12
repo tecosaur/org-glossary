@@ -19,6 +19,8 @@
 ;;
 ;;; Plan:
 ;;
+;; TODO use `org-element-cache-map'
+;;
 ;; TODO jump to usages
 ;;
 ;; TODO support term-links with multiple targets
