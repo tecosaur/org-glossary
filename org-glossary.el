@@ -737,6 +737,9 @@ side-effect when it is provided."
 
 ;;; Term usage
 
+(defconst org-glossary--active-affiliated-keywords '("caption")
+  "Affiliated keywords that are considered valid targets for autodetection.")
+
 (defun org-glossary-apply-terms (terms &optional no-modify no-number keep-unused)
   "Replace occurrences of the TERMS with links.
 This returns a copy of TERMS with references recorded in :uses.
@@ -779,10 +782,20 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
                      (not (member (org-element-property :key element-at-point)
                                   org-element-parsed-keywords))))
             nil) ; Skip, not a valid reference.
+           ;; Existing links
            ((eq 'link (org-element-type element-context))
             (funcall register-term
                      (org-glossary--update-link
                       terms element-context no-modify no-number)))
+           ;; Affiliated keywords
+           ((and org-glossary-automatic
+                 (org-element-property :post-affiliated element-context)
+                 (< (point) (org-element-property :post-affiliated element-context)))
+            (when (org-glossary--at-valid-affiliated-keyword-p)
+              (funcall register-term
+                       (org-glossary--update-plain
+                        terms no-modify no-number))))
+           ;; Within a context where links may occur
            ((and org-glossary-automatic
                  (memq 'link (org-element-restriction element-context)))
             (funcall register-term
@@ -905,6 +918,16 @@ expression too big\"' is seen with around 1000+ terms.")
                org-glossary--heading-names)
        (or (= 1 (org-element-property :level heading))
            (not org-glossary-toplevel-only))))
+
+(defun org-glossary--at-valid-affiliated-keyword-p ()
+  "Whether `point' is currently within a valid affiliated keyword."
+  (save-excursion
+    (beginning-of-line)
+    (save-match-data
+      (and (re-search-forward "\\=[ \t]*#\\+\\([^: ]+\\):" (line-end-position) t)
+           (member
+            (downcase (match-string 1))
+            org-glossary--active-affiliated-keywords)))))
 
 (defun org-glossary--update-link (terms link &optional no-modify no-number)
   "Register LINK's reference to a term in TERMS, and update numbering.
@@ -1775,10 +1798,12 @@ This should only be run as an export hook."
                    (not (and (not org-glossary-autodetect-in-headings)
                              (eq 'headline (org-element-type element-at-point))))
                    (memq 'link (org-element-restriction element-context))
-                   (if (eq 'keyword (org-element-type element-at-point))
+                   (or (not (eq 'keyword (org-element-type element-at-point)))
                        (member (org-element-property :key element-at-point)
-                               org-element-parsed-keywords)
-                     t)
+                               org-element-parsed-keywords))
+                   (or (not (org-element-property :post-affiliated element-context))
+                       (>= (point) (org-element-property :post-affiliated element-context))
+                       (org-glossary--at-valid-affiliated-keyword-p))
                    (not (org-glossary--within-definition-p element-context)))
           ;; HACK For some strange reason, if I don't move point forwards
           ;; here, this function will end up being called again and again
