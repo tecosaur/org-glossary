@@ -459,7 +459,9 @@ The PATH-SPEC is formed with respect to the current buffer."
     (let ((lines (plist-get parameters :lines))
           (file (plist-get parameters :file))
           (location (plist-get parameters :location))
-          (org-inhibit-startup t))
+          (org-inhibit-startup t)
+          (org-font-lock-set-keywords-hook nil)
+          (org-mode-hook nil))
       (org-mode)
       (insert
        (org-export--prepare-file-contents
