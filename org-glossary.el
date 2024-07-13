@@ -1258,7 +1258,10 @@ optional arguments:
                (string-match-p "%v" template))
       (push (cons ?v
                   (let ((value-str
-                         (org-glossary--export-term canonical-term info)))
+                         (if (not (eq (plist-get term-entry :type)
+                                      (plist-get canonical-term :type)))
+                             (plist-get canonical-term (if plural-p :term-plural :term))
+                           (org-glossary--export-term term-entry info))))
                     (funcall (if capitalized-p #'org-glossary--sentance-case
                                #'identity)
                              (if plural-p
