@@ -1212,7 +1212,7 @@ relevant template."
     (cond
      ((stringp template)
       (org-glossary--export-template
-       template backend info term-entry
+       template backend info term-entry form
        ref-index plural-p capitalized-p extra-parameters))
      ((functionp template)
       (funcall template backend info term-entry form
@@ -1220,9 +1220,9 @@ relevant template."
      ((not template) "")
      (t "ORG-GLOSSARY-EXPORT-INVALID-SPEC"))))
 
-(defun org-glossary--export-template (template backend info term-entry &optional ref-index plural-p capitalized-p extra-parameters)
-  "Fill out TEMPLATE using BACKEND, INFO, and TERM-ENTRY.
 The fields availible to the template are further affected by the
+(defun org-glossary--export-template (template backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
+  "Fill out TEMPLATE for FORM using BACKEND, INFO, and TERM-ENTRY.
 optional arguments:
  - REF-INDEX provides %r
  - PLURAL-P and CAPITALIZED-P affect %t and %v
@@ -1235,7 +1235,12 @@ optional arguments:
     (when (string-match-p "%k" template)
       (push (cons ?k (plist-get canonical-term :key)) parameters))
     (when (string-match-p "%K" template)
-      (push (cons ?K (org-glossary--nonce-index (plist-get canonical-term :key-nonce)))
+      (push (cons ?K (org-glossary--nonce-index
+                      (plist-get
+                       (if (eq form :definition-structure)
+                           term-entry
+                         canonical-term)
+                       :key-nonce)))
             parameters))
     (when (string-match-p "%t" template)
       (push (cons ?t (funcall (if capitalized-p #'org-glossary--sentance-case
