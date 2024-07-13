@@ -612,7 +612,8 @@ then the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
 (defun org-glossary-clear-cache ()
   "Clear the global term cache."
   (interactive)
-  (setq org-glossary--terms-cache nil))
+  (setq org-glossary--terms-cache nil
+        org-glossary--quicklookup-cache (make-hash-table :test #'equal)))
 
 ;;; Term identification
 
