@@ -1248,24 +1248,6 @@ optional arguments:
     (when (string-match-p "%L" template)
       (push (cons ?L (string (upcase (aref (plist-get term-entry :term) 0))))
             parameters))
-    (when (and (not (memq ?v (mapcar #'car extra-parameters)))
-               (string-match-p "%v" template))
-      (push (cons ?v
-                  (let ((value-str
-                         (if (not (eq (plist-get term-entry :type)
-                                      (plist-get canonical-term :type)))
-                             (plist-get canonical-term (if plural-p :term-plural :term))
-                           (org-glossary--export-term term-entry info))))
-                    (funcall (if capitalized-p #'org-glossary--sentance-case
-                               #'identity)
-                             (if plural-p
-                                 (let ((components (split-string value-str)))
-                                   (setf (car (last components))
-                                         (funcall org-glossary-plural-function
-                                                  (car (last components))))
-                                   (mapconcat #'identity components " "))
-                               value-str))))
-            parameters))
     (when (and ref-index (string-match-p "%r" template))
       (push (cons ?r (number-to-string ref-index))
             parameters))
@@ -1281,6 +1263,28 @@ optional arguments:
                       backend info term-entry :use
                       ref-index plural-p capitalized-p
                       extra-parameters))
+            parameters))
+    (when (and (not (memq ?v (mapcar #'car extra-parameters)))
+               (string-match-p "%v" template))
+      (push (cons ?v
+                  (let ((value-str
+                         (cond
+                          ((eq (plist-get term-entry :type)
+                               (plist-get canonical-term :type))
+                           (org-glossary--export-term term-entry info))
+                          (plural-p
+                           (setq plural-p nil)
+                           (plist-get canonical-term :term-plural))
+                          (t (plist-get canonical-term :term)))))
+                    (funcall (if capitalized-p #'org-glossary--sentance-case
+                               #'identity)
+                             (if plural-p
+                                 (let ((components (split-string value-str)))
+                                   (setf (car (last components))
+                                         (funcall org-glossary-plural-function
+                                                  (car (last components))))
+                                   (mapconcat #'identity components " "))
+                               value-str))))
             parameters))
     (format-spec template (nreverse parameters))))
 
