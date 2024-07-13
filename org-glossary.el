@@ -651,27 +651,17 @@ side-effect when it is provided."
                      (org-element-interpret-data
                       (or (org-element-property :tag item)
                           (org-element-contents item))))))
-         (case-fold-search nil)
-         (sentancecase-to-lowercase
-          (lambda (word)
-            (if (or (string-match-p "^[[:upper:]][^[:space:]][^[:upper:]]+$" word)
-                    ;; NOTE This following rule makes sense, but unfortunately is
-                    ;; english-only. It would be good to support a similar case in
-                    ;; more languages at some point.
-                    (string-match-p "^\\(?:A\\|An\\)[[:space:]][^[:upper:]]+$" word))
-                (concat (string (downcase (aref word 0))) (substring word 1))
-              word)))
          (keys-terms (split-string term-str "[ \t]*=[ \t]*"))
          (term-and-plural (split-string (car (last keys-terms)) "[ \t]*,[ \t]*"))
-         (term (funcall sentancecase-to-lowercase (car term-and-plural)))
-         (plural (funcall sentancecase-to-lowercase
-                          (or (cadr term-and-plural)
-                              (funcall org-glossary-plural-function term))))
+         (term (org-glossary--downcase-if-sentance-case (car term-and-plural)))
+         (plural (org-glossary--downcase-if-sentance-case
+                  (or (cadr term-and-plural)
+                      (funcall org-glossary-plural-function term))))
          (key-and-plural (split-string (car keys-terms) "[ \t]*,[ \t]*"))
-         (key (funcall sentancecase-to-lowercase (car key-and-plural)))
-         (key-plural (funcall sentancecase-to-lowercase
-                              (or (cadr key-and-plural)
-                                  (funcall org-glossary-plural-function key))))
+         (key (org-glossary--downcase-if-sentance-case (car key-and-plural)))
+         (key-plural (org-glossary--downcase-if-sentance-case
+                      (or (cadr key-and-plural)
+                          (funcall org-glossary-plural-function key))))
          (type-category (org-glossary--entry-type-category
                          (org-element-lineage item '(headline))))
          (item-contents (and (org-element-property :tag item)
@@ -1319,6 +1309,16 @@ exported in place of the paragraph itself."
 (defun org-glossary--sentance-case (s)
   "Return a sentence-cased version of S."
   (concat (string (upcase (aref s 0))) (substring s 1)))
+
+(defun org-glossary--downcase-if-sentance-case (str)
+  "If STR is in sentence case, return a `downcase'd version."
+  (if (or (string-match-p "^[[:upper:]][^[:space:]][^[:upper:]]+$" str)
+          ;; NOTE This following rule makes sense, but unfortunately is
+          ;; english-only. It would be good to support a similar case in
+          ;; more languages at some point.
+          (string-match-p "^\\(?:A\\|An\\)[[:space:]][^[:upper:]]+$" str))
+      (concat (string (downcase (aref str 0))) (substring str 1))
+    str))
 
 ;;; Export used term definitions
 
