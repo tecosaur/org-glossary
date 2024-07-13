@@ -1070,7 +1070,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
   (plist-put term-entry :uses nil))
 
 (defun org-glossary--term-replacement (term-entry &optional index plural-p capitalized-p)
-  "Construct a string refering to the TERM-ENTRY"
+  "Construct a string referring to the TERM-ENTRY"
   (org-element-interpret-data
    `(link
      (:type ,(cond
@@ -1112,7 +1112,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
         (org-glossary--deregister-buffer-dependencies (car buf-dep))))))
 
 (defun org-glossary--propagate-buffer-updates (path-spec)
-  "Update all buffers whos definitions depend on PATH-SPEC.
+  "Update all buffers whose definitions depend on PATH-SPEC.
 The actual update is performed by `org-glossary--update-buffers'."
   (when-let ((dependants (cdr (assoc path-spec org-glossary--path-dependencies))))
     (unless org-glossary--path-update-timer
@@ -1202,7 +1202,7 @@ PROPERTY is set to VALUE within the TYPE list of the BACKEND list in
 
 (defun org-glossary--export-instance (backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
   "Export the FORM of TERM-ENTRY according to `org-glossary--current-export-spec'.
-All other argments (BACKEND, INFO, FORM, REF-INDEX, PLURAL-P,
+All other arguments (BACKEND, INFO, FORM, REF-INDEX, PLURAL-P,
 CAPITALIZED-P, EXTRA-PARAMETERS) are simply passed onto the
 relevant template."
   (let ((template
@@ -1221,9 +1221,9 @@ relevant template."
      ((not template) "")
      (t "ORG-GLOSSARY-EXPORT-INVALID-SPEC"))))
 
-The fields availible to the template are further affected by the
 (defun org-glossary--export-template (template backend info term-entry form &optional ref-index plural-p capitalized-p extra-parameters)
   "Fill out TEMPLATE for FORM using BACKEND, INFO, and TERM-ENTRY.
+The fields available to the template are further affected by the
 optional arguments:
  - REF-INDEX provides %r
  - PLURAL-P and CAPITALIZED-P affect %t and %v
@@ -1316,7 +1316,7 @@ exported in place of the paragraph itself."
                  (plist-get info :exported-data)))))
 
 (defun org-glossary--sentance-case (s)
-  "Return a sentance-cased version of S."
+  "Return a sentence-cased version of S."
   (concat (string (upcase (aref s 0))) (substring s 1)))
 
 ;;; Export used term definitions
@@ -1456,7 +1456,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
                   backend nil term-entry :backref-seperator))))))))
 
 (defun org-glossary--group-terms (terms predicate &optional include)
-  "Group TERMS according to PREDICATE, and optionaly only INCLUDE certain groups."
+  "Group TERMS according to PREDICATE, and optionally only INCLUDE certain groups."
   (let (groups grp)
     (dolist (trm terms)
       (setq grp (funcall predicate trm))
@@ -1752,7 +1752,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 ;;; Export
 
 (defun org-glossary--prepare-buffer (&optional backend)
-  "Modify the buffer to resolve all defined terms, prepearing it for export.
+  "Modify the buffer to resolve all defined terms, preparing it for export.
 This should only be run as an export hook."
   (setq org-glossary--terms (org-glossary--get-terms-cached)
         org-glossary--current-export-spec
@@ -1843,7 +1843,7 @@ This should only be run as an export hook."
   org-glossary-mode)
 
 (defun org-glossary--fontify-find-next (&optional limit)
-  "Find any next occurance of a term reference, for fontification."
+  "Find any next occurrence of a term reference, for fontification."
   (let ((search-spaces-regexp (and font-lock-multiline "[ \t\n][ \t]*"))
         match-p exit element-at-point element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
@@ -2010,7 +2010,7 @@ This should only be run as an export hook."
   "A hash table for quickly looking up a term-entry from a reference form.")
 
 (defun org-glossary--quicklookup (term-str)
-  "Find the term entry reffered to by TERM-STR."
+  "Find the term entry referred to by TERM-STR."
   (or (gethash term-str org-glossary--quicklookup-cache)
       (and (not (string-empty-p term-str))
            (let ((term-entry
@@ -2058,7 +2058,7 @@ This should only be run as an export hook."
 This combines locations listed in `org-glossary-global-terms' with
 local sources specified with \"#+glossary_sources: LOCATIONS\".
 
-LOCATIONS is interpreted as space-seperated path specification
+LOCATIONS is interpreted as space-separated path specification
 components which are prefixed by `org-glossary-collection-root'.
 Path spec components including spaces can be given by enclosing
 the location in double quotes. Should a file exist at a resolved
@@ -2087,7 +2087,7 @@ location."
      ?\s))))
 
 (defun org-glossary--term-status-message (current-terms &optional initial-terms)
-  "Emit a status mesage, based on CURRENT-TERMS and INITIAL-TERMS."
+  "Emit a status message, based on CURRENT-TERMS and INITIAL-TERMS."
   (let ((added-terms (cl-set-difference current-terms initial-terms :test #'string=))
         (removed-terms (cl-set-difference initial-terms current-terms :test #'string=))
         (n-sources (length (cl-delete-duplicates
