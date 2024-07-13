@@ -1244,7 +1244,8 @@ optional arguments:
                        :key-nonce)))
             parameters))
     (when (string-match-p "%t" template)
-      (push (cons ?t (funcall (if capitalized-p #'org-glossary--sentance-case
+      (push (cons ?t (funcall (if (or capitalized-p (eq form :definition-structure))
+                                  #'org-glossary--sentance-case
                                 #'identity)
                               (plist-get term-entry
                                          (if plural-p :term-plural :term))))
