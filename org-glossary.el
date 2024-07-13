@@ -779,7 +779,7 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
             (setq element-at-point (org-element-at-point)
                   element-context (org-element-context element-at-point)))
           (cond
-           ((or (org-glossary--within-definition-p element-context)
+           ((or (org-glossary--within-definition-or-unexported-p element-context)
                 (and (not org-glossary-autodetect-in-headings)
                      (eq 'headline (org-element-type element-at-point)))
                 (and (eq 'keyword (org-element-type element-at-point))
@@ -908,20 +908,49 @@ expression too big\"' is seen with around 1000+ terms.")
 
 (defun org-glossary--within-definition-p (datum)
   "Whether DATUM exists within a term definition subtree."
-  (when datum
-    (if (and (eq 'headline (org-element-type datum))
-             (org-glossary--definition-heading-p datum))
-        t
-      (save-match-data
-        (org-glossary--within-definition-p
-         (org-element-lineage datum '(headline)))))))
+  (and datum
+       (if (and (eq 'headline (org-element-type datum))
+                (org-glossary--definition-heading-p datum))
+           t
+         (save-match-data
+           (org-glossary--within-definition-p
+            (org-element-lineage datum '(headline)))))))
 
 (defun org-glossary--definition-heading-p (heading)
   "Whether HEADING is recognised as a definition heading."
   (and (member (org-element-property :raw-value heading)
                org-glossary--heading-names)
        (or (= 1 (org-element-property :level heading))
-           (not org-glossary-toplevel-only))))
+           (not org-glossary-toplevel-only))
+       (not (org-element-property :commentedp heading))))
+
+(defun org-glossary--within-unexported-p (datum)
+  "Whether DATUM exists within an unexported subtree."
+  (and datum
+       (if (and (eq 'headline (org-element-type datum))
+                (org-glossary--unexported-heading-p datum))
+           t
+         (save-match-data
+           (org-glossary--within-unexported-p
+            (org-element-lineage datum '(headline)))))))
+
+(defun org-glossary--unexported-heading-p (heading)
+  "Whether HEADING is recognised as an unexported heading."
+  (or (cl-intersection (org-element-property :tags heading)
+                       org-export-exclude-tags
+                       :test #'equal)
+      (org-element-property :commentedp heading)))
+
+(defun org-glossary--within-definition-or-unexported-p (datum)
+  "Whether DATUM exists within a term definition or unexported subtree."
+  (and datum
+       (if (and (eq 'headline (org-element-type datum))
+                (or (org-glossary--definition-heading-p datum)
+                    (org-glossary--unexported-heading-p datum)))
+           t
+         (save-match-data
+           (org-glossary--within-definition-or-unexported-p
+            (org-element-lineage datum '(headline)))))))
 
 (defun org-glossary--at-valid-affiliated-keyword-p ()
   "Whether `point' is currently within a valid affiliated keyword."
