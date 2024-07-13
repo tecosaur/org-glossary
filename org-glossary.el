@@ -715,7 +715,8 @@ side-effect when it is provided."
       (puthash (plist-get term-entry :key) term-entry key-term-map))
     (dolist (term-entry terms)
       (when-let ((value (plist-get term-entry :value))
-                 (value-str (string-trim (org-element-interpret-data value)))
+                 (value-str (org-glossary--downcase-if-sentance-case
+                             (string-trim (org-element-interpret-data value))))
                  (associated-term (gethash value-str key-term-map)))
         (plist-put term-entry :alias-for associated-term)
         (plist-put term-entry :value (plist-get associated-term :value)))))
@@ -1312,13 +1313,14 @@ exported in place of the paragraph itself."
 
 (defun org-glossary--downcase-if-sentance-case (str)
   "If STR is in sentence case, return a `downcase'd version."
-  (if (or (string-match-p "^[[:upper:]][^[:space:]][^[:upper:]]+$" str)
-          ;; NOTE This following rule makes sense, but unfortunately is
-          ;; english-only. It would be good to support a similar case in
-          ;; more languages at some point.
-          (string-match-p "^\\(?:A\\|An\\)[[:space:]][^[:upper:]]+$" str))
-      (concat (string (downcase (aref str 0))) (substring str 1))
-    str))
+  (let (case-fold-search)
+    (if (or (string-match-p "^[[:upper:]][^[:space:]][^[:upper:]]+$" str)
+            ;; NOTE This following rule makes sense, but unfortunately is
+            ;; english-only. It would be good to support a similar case in
+            ;; more languages at some point.
+            (string-match-p "^\\(?:A\\|An\\)[[:space:]][^[:upper:]]+$" str))
+        (concat (string (downcase (aref str 0))) (substring str 1))
+      str)))
 
 ;;; Export used term definitions
 
