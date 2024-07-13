@@ -252,16 +252,17 @@ The literal content of :definition-structure-preamble is inserted
 before the first :definition-structure in each block of
 definitions.
 
-If using cleverref with LaTeX, making use of the \\labelcpageref
+If using cleveref with LaTeX, making use of the \\labelcpageref
 command like so is recommended:
 
-  (org-glossary-set-export-spec 'latex t
+  (org-glossary-set-export-spec \\='latex t
     :backref \"gls-%k-use-%r\"
     :backref-seperator \",\"
     :definition-structure
     \"*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum%n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n\")
 
-TODO rewrite for clarity."
+If you do use cleveref, you may run into the many-pages bug.
+A fix for this is described in <https://tex.stackexchange.com/a/620066>."
   :type '(alist :key-type (symbol :tag "Backend")
                 :value-type
                 (alist :key-type (symbol :tag "Type")
