@@ -739,6 +739,21 @@ side-effect when it is provided."
       (puthash key (1+ (hash-table-count org-glossary--key-nonces))
                org-glossary--key-nonces)))
 
+(defvar-local org-glossary--key-nonce-indices nil
+  "A mapping of key nonces to usage indices.
+This allows exports to use consistent numbering, regardless
+of the particular nonce assigned to a key.")
+
+(defun org-glossary--nonce-index (nonce)
+  "Return the index for NONCE, assigning one if not already set."
+  (unless org-glossary--key-nonce-indices
+    (setq org-glossary--key-nonce-indices (make-hash-table :test #'eql)))
+  (or (gethash nonce org-glossary--key-nonce-indices)
+      (puthash nonce
+               (number-to-string
+                (1+ (hash-table-count org-glossary--key-nonce-indices)))
+               org-glossary--key-nonce-indices)))
+
 ;;; Term usage
 
 (defconst org-glossary--active-affiliated-keywords '("caption")
@@ -1220,7 +1235,7 @@ optional arguments:
     (when (string-match-p "%k" template)
       (push (cons ?k (plist-get canonical-term :key)) parameters))
     (when (string-match-p "%K" template)
-      (push (cons ?K (number-to-string (plist-get canonical-term :key-nonce)))
+      (push (cons ?K (org-glossary--nonce-index (plist-get canonical-term :key-nonce)))
             parameters))
     (when (string-match-p "%t" template)
       (push (cons ?t (funcall (if capitalized-p #'org-glossary--sentance-case
@@ -1732,7 +1747,8 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 This should only be run as an export hook."
   (setq org-glossary--terms (org-glossary--get-terms-cached)
         org-glossary--current-export-spec
-        (org-glossary--get-export-specs backend))
+        (org-glossary--get-export-specs backend)
+        org-glossary--key-nonce-indices nil)
   (org-glossary--strip-headings nil nil nil t)
   (let ((index-terms-mrx (org-glossary--mrx-construct-from-terms
                           (cl-remove-if
