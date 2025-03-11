@@ -1329,7 +1329,7 @@ exported in place of the paragraph itself."
 
 ;;; Export used term definitions
 
-(defun org-glossary--print-terms (backend terms &optional types level duplicate-mentions)
+(defun org-glossary--print-terms (backend terms &optional types level duplicate-mentions parameters)
   "Produce an org-mode AST defining TERMS for BACKEND.
 Do this for each of TYPES (by default, the :type specified in
 `org-glossary-default-print-parameters'),producing a heading of level
@@ -1356,12 +1356,12 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
        (setq export-spec (alist-get (car type-terms) org-glossary--current-export-spec)
              content (org-glossary--print-terms-by-category
                       backend (car type-terms) (cdr type-terms) level))
-       (if (and (not (string-empty-p (plist-get export-spec :heading)))
+       (if (and (not (string-empty-p (plist-get (org-combine-plists export-spec parameters) :heading)))
                 (> level 0))
            (concat
-            (and (string-match-p "^\\* " (plist-get export-spec :heading))
+            (and (string-match-p "^\\* " (plist-get (org-combine-plists export-spec parameters) :heading))
                  (make-string (1- level) ?*))
-            (plist-get export-spec :heading)
+            (plist-get (org-combine-plists export-spec parameters) :heading)
             "\n"
             content)
          content))
@@ -1554,7 +1554,8 @@ If MARK-EXTRACTED is non-nil, extracted uses shall be marked as extracted."
    (if (plist-get parameters :only-contents)
        0
      (1+ (plist-get parameters :level)))
-   (plist-get parameters :all)))
+   (plist-get parameters :all)
+   parameters))
 
 (defun org-glossary--expand-print-keyword (backend terms keyword)
   "Call `org-glossary--expand-print' with parameters and terms based on KEYWORD.
