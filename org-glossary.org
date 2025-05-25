@@ -16,6 +16,11 @@ in-buffer highlighting of defined terms and high-quality exports across all =ox-
 backends.
 
 ** Quickstart
+Install =org-glossary= with your favourite package manager, e.g. =use-package=.  To set up the default keybindings, run ~(org-glossary-setup-keymap)~.  Alternatively, you can setup your own key-bindings e.g. using:
+
+#+begin_src emacs-lisp
+  (define-key org-glossary-keymap (kbd "C-c C-c") 'org-glossary-goto-term-definition)
+#+end_src
 
 To define a glossary entry, simply place a top-level heading in the document
 titled =Glossary= or =Acronyms= and therein define terms using an Org definition

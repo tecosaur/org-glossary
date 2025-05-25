@@ -1809,21 +1809,28 @@ This should only be run as an export hook."
      (0 (org-glossary--fontify-term))))
   "`font-lock-keywords' entry that fontifies term references.")
 
+(defvar org-glossary-keymap
+  (make-sparse-keymap)
+  "Keymap for mouse actions over fontified Denote links.")
+
+(defun org-glossary-setup-keymap ()
+  "Set up the `org-glossary-keymap' with default bindings."
+  (interactive)
+  (define-key org-glossary-keymap [mouse-1] #'org-glossary-goto-term-definition)
+  (define-key org-glossary-keymap [mouse-2] #'org-glossary-goto-term-definition)
+  (define-key org-glossary-keymap [follow-link] #'org-glossary-goto-term-definition))
+
 (defun org-glossary--set-font-lock-keywords (&optional per-term-p)
   "Set `org-glossary--font-lock-keywords' according to PER-TERM-P."
   (setq org-glossary--font-lock-keywords
         (if per-term-p
             '((org-glossary--fontify-find-next
                (0 (org-glossary--fontify-term))))
-          '((org-glossary--fontify-find-next
-             (0 '(face org-glossary-term
+          `((org-glossary--fontify-find-next
+             (0 `(face org-glossary-term
                   help-echo org-glossary--help-echo-from-textprop
                   mouse-face (:inverse-video t)
-                  keymap (keymap
-                          (follow-link . mouse-face)
-                          (mouse-2 . org-glossary-goto-term-definition)
-                          ("RET" . org-glossary-goto-term-definition)
-                          (return . org-glossary-goto-term-definition)))
+                  keymap ,org-glossary-keymap)
                 t)))))
   per-term-p)
 
@@ -1931,11 +1938,7 @@ This should only be run as an export hook."
       `(help-echo
         org-glossary--help-echo-from-textprop
         mouse-face (:inverse-video t)
-        keymap (keymap
-                (follow-link . mouse-face)
-                (mouse-2 . org-glossary-goto-term-definition)
-                ("RET" . org-glossary-goto-term-definition)
-                (return . org-glossary-goto-term-definition)))))))
+        keymap ,org-glossary-keymap)))))
 
 (defvar-local org-glossary--help-echo-cache (make-hash-table :test #'equal)
   "A hash table for quickly looking up fontified help-echo strings.")
