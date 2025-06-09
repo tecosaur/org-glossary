@@ -78,16 +78,16 @@ Export configuration
 @section Summary
 
 Org Glossary defines a flexible model for working with @emph{glossary-like} constructs
-(glossaries, acronyms, indices, etc.) within Org documents, with support for
+(glossaries@comma{} acronyms@comma{} indices@comma{} etc.) within Org documents@comma{} with support for
 in-buffer highlighting of defined terms and high-quality exports across all @samp{ox-*}
 backends.
 
 @node Quickstart
 @section Quickstart
 
-To define a glossary entry, simply place a top-level heading in the document
+To define a glossary entry@comma{} simply place a top-level heading in the document
 titled @samp{Glossary} or @samp{Acronyms} and therein define terms using an Org definition
-list, like so:
+list@comma{} like so:
 
 @example
 * Glossary
@@ -104,39 +104,39 @@ Pick up on the uses of defined terms
 @item
 Generate a Glossary/Acronym section at the end of the document
 @item
-Link uses of terms with their definitions, in a backend-appropriate manner
+Link uses of terms with their definitions@comma{} in a backend-appropriate manner
 (e.g. hyperlinks in html)
 @item
 Give the expanded version of each acronym in parenthesis when they are first
-used (e.g. ``PICNIC (Problem In Chair, Not In Computer)'')
+used (e.g. ``PICNIC (Problem In Chair@comma{} Not In Computer)'')
 @end itemize
 
-To generate an Index for certain terms, you can almost do the same thing, just
-use an @samp{Index} heading and use a plain list of terms, e.g.
+To generate an Index for certain terms@comma{} you can almost do the same thing@comma{} just
+use an @samp{Index} heading and use a plain list of terms@comma{} e.g.
 
 @example
 * Index
 - org-mode
 @end example
 
-To see how this all works, try exporting the following example with Org Glossary
+To see how this all works@comma{} try exporting the following example with Org Glossary
 installed:
 
 @example
-Try using Org Glossary for all your glosses, acronyms, and more within your
+Try using Org Glossary for all your glosses@comma{} acronyms@comma{} and more within your
 favourite ML with a unicorn mascot. It attempts to provide powerful
-functionality, in keeping with the simplicity of the Org ML we all know and
+functionality@comma{} in keeping with the simplicity of the Org ML we all know and
 love.
 
 * Glossary
-- glosses :: Brief notations, giving the meaning of a word or wording in a text.
+- glosses :: Brief notations@comma{} giving the meaning of a word or wording in a text.
 * Acronyms
 - ML :: Markup Language
 * Index
 - unicorn
 @end example
 
-If you'd like to see a visual indication of term uses while in org-mode, call
+If you'd like to see a visual indication of term uses while in org-mode@comma{} call
 @samp{M-x org-glossary-mode}.
 
 Term references will be highlighted according to
@@ -147,8 +147,8 @@ default.
 @node Design
 @section Design
 
-In large or technical documents, there's often a need for an appendix clarifying
-terms and listing occurrences; this may take the form of a glossary, index, or
+In large or technical documents@comma{} there's often a need for an appendix clarifying
+terms and listing occurrences; this may take the form of a glossary@comma{} index@comma{} or
 something else. Org Glossary abstracts all of these glossary-like forms into
 @emph{tracked generated text replacements}. Most common structures fit into this
 abstraction like so:
@@ -159,16 +159,16 @@ Search for definitions of @samp{$term}
 @item
 Replace all uses of @samp{$term} with @samp{f($term)}
 @item
-Generate a definition section for all used terms, linking to the uses
+Generate a definition section for all used terms@comma{} linking to the uses
 @end enumerate
 
-Out of the box, four glossary-like structures are configured:
+Out of the box@comma{} four glossary-like structures are configured:
 @table @asis
 @item Glossary
-The term is transformed to the same text, but linking to the
+The term is transformed to the same text@comma{} but linking to the
 definition.
 @item Acronyms
-The first use of the term adds the definition in parentheses, and
+The first use of the term adds the definition in parentheses@comma{} and
 subsequent uses simply link to the definition (behaving the same as glossary
 terms).
 @item Index
@@ -178,10 +178,10 @@ step 3. alone).
 The term is replaced with its definition.
 @end table
 
-For more details on how this works, see @ref{Structure of an export template set}.
+For more details on how this works@comma{} see @ref{Structure of an export template set}.
 
 There is a little special-cased behaviour for indexes (usage detection) and text
-substitution (fontification), but it is kept to a minimum and ideally will be
+substitution (fontification)@comma{} but it is kept to a minimum and ideally will be
 removed via generalisation in future.
 
 @node Usage
@@ -210,7 +210,7 @@ removed via generalisation in future.
 @subsection Placement of definitions
 
 Definitions must be placed under one of the specially named headings listed in
-@code{org-glossary-headings}, by default:
+@code{org-glossary-headings}@comma{} by default:
 
 @example
 * Glossary
@@ -219,30 +219,30 @@ Definitions must be placed under one of the specially named headings listed in
 * Text Substitutions
 @end example
 
-If @code{org-glossary-toplevel-only} is non-nil, then these headlines must also be
-level one headings. If it is nil, then they are recognised wherever they occur
+If @code{org-glossary-toplevel-only} is non-nil@comma{} then these headlines must also be
+level one headings. If it is nil@comma{} then they are recognised wherever they occur
 in the document. Note that when using subtree export and non-nil
-@code{org-glossary-toplevel-only}, only level-1 headings in the widened document will
+@code{org-glossary-toplevel-only}@comma{} only level-1 headings in the widened document will
 be recognised (i.e. it behaves the same as non-subtree export).
 
 @node External definition sources
 @subsection External definition sources
 
-Org Glossary supports searching for term definitions in other @samp{#+include}d files,
+Org Glossary supports searching for term definitions in other @samp{#+include}d files@comma{}
 respecting the various restrictions such as headings and line number ranges. You
 may also specify include paths providing definitions that should be globally
 available via @code{org-glossary-global-terms}.
 
-If you maintain a set of common term sources you may want to use, instead of
-@samp{#+include}ing them, you can make use of the convenience keyword
+If you maintain a set of common term sources you may want to use@comma{} instead of
+@samp{#+include}ing them@comma{} you can make use of the convenience keyword
 @samp{#+glossary_sources}.
 
 The value of @samp{#+glossary_sources} is split on spaces and to form a list of
 locations. Each location is appended to @code{org-glossary-collection-root} to form the
 fully qualified location. These locations are then @samp{#+include}d.
 
-For example, if @code{org-glossary-collection-root} is set to a folder where a number
-of individual definition files are places, one could then conveniently use a few with:
+For example@comma{} if @code{org-glossary-collection-root} is set to a folder where a number
+of individual definition files are places@comma{} one could then conveniently use a few with:
 
 @example
 #+glossary_sources: abbrevs physics.org::*Quantum foo bar.org
@@ -258,7 +258,7 @@ This would be equivalent to:
 @end example
 
 You could also set to an individual file with the beginning of a heading
-specification, say @code{file.org::*}. This would allow you to have all the terms
+specification@comma{} say @code{file.org::*}. This would allow you to have all the terms
 defined in one file and include groups by heading.
 
 Not that sources with heading/custom-id searches will automatically have
@@ -268,20 +268,20 @@ with glossary subheadings to work when @code{org-glossary-toplevel-only} is set.
 @node Basic definitions
 @subsection Basic definitions
 
-Org already has a very natural structure for term-definition associations,
+Org already has a very natural structure for term-definition associations@comma{}
 description lists. Term definitions are extracted from all non-nested
-description lists within the glossary heading, other elements are simply
+description lists within the glossary heading@comma{} other elements are simply
 ignored.
 
-For example, to define ``late pleistocene wolf'' you could use a description list
+For example@comma{} to define ``late pleistocene wolf'' you could use a description list
 entry like so:
 
 @example
-- late pleistocene wolf :: an extinct lineage of the grey wolf, thought to be
+- late pleistocene wolf :: an extinct lineage of the grey wolf@comma{} thought to be
   the ancestor of the dog
 @end example
 
-which is an instance of the basic structure,
+which is an instance of the basic structure@comma{}
 
 @example
 - TERM :: DEFINITION
@@ -291,42 +291,42 @@ which is an instance of the basic structure,
 @subsection Advanced definitions
 
 When giving a simple definition like @samp{automaton :: A thing or being regarded as
-having the power of spontaneous motion or action}, Org Glossary will actually
+having the power of spontaneous motion or action}@comma{} Org Glossary will actually
 make a few assumptions.
 @itemize
 @item
 Your wish to refer to the term @samp{automaton} with @samp{automaton}
 @item
-There is also a plural form, guessed by calling @code{org-glossary-plural-function},
-in this case resulting in @samp{automata}, and you wish to refer to the plural form
+There is also a plural form@comma{} guessed by calling @code{org-glossary-plural-function}@comma{}
+in this case resulting in @samp{automata}@comma{} and you wish to refer to the plural form
 with @samp{automata}.
 @end itemize
 
-This is equivalent to the following ``full form'',
+This is equivalent to the following ``full form''@comma{}
 
 @example
-- automaton,automata = automaton,automata :: A thing or being regarded as having
+- automaton@comma{}automata = automaton@comma{}automata :: A thing or being regarded as having
   the power of spontaneous motion or action
 @end example
 
-which is an instance of the full structure,
+which is an instance of the full structure@comma{}
 
 @example
-- SINGULAR KEY, PLURAL KEY = SINGULAR FORM, PLURAL FORM :: DEFINITION
+- SINGULAR KEY@comma{} PLURAL KEY = SINGULAR FORM@comma{} PLURAL FORM :: DEFINITION
 @end example
 
 
-This may seem overly complicated, but unfortunately irregular plurals and
+This may seem overly complicated@comma{} but unfortunately irregular plurals and
 homographs exist. Here are some examples of where this functionality comes into
 play:
 
 @example
-- eveningtime=evening :: The latter part of the day, and early night.
-- eveninglevel=evening :: To make more even, to become balanced or level.
+- eveningtime=evening :: The latter part of the day@comma{} and early night.
+- eveninglevel=evening :: To make more even@comma{} to become balanced or level.
 @end example
 
-Here we wish to clarify different uses of the same term ``evening'', and so define
-unique keys for each usage. In writing you would use the keys like so,
+Here we wish to clarify different uses of the same term ``evening''@comma{} and so define
+unique keys for each usage. In writing you would use the keys like so@comma{}
 
 @example
 In the eveningtime I take to eveninglevel out the sand pit.
@@ -335,36 +335,36 @@ In the eveningtime I take to eveninglevel out the sand pit.
 Let us now consider both irregular plurals and defective nouns.
 
 @example
-- ox, oxen :: A male bovine animal.
-- sheep, :: A domesticated ruminant mammal with a thick wooly coat.
-- glasses, :: An optical instrument worn to correct vision.
+- ox@comma{} oxen :: A male bovine animal.
+- sheep@comma{} :: A domesticated ruminant mammal with a thick wooly coat.
+- glasses@comma{} :: An optical instrument worn to correct vision.
 @end example
 
-In the case of ``ox, oxen'' we give the irregular plural form explicitly. ``Sheep''
+In the case of ``ox@comma{} oxen'' we give the irregular plural form explicitly. ``Sheep''
 is also an irregular plural and by just putting a comma but omitting the plural
 form no plural form will be generated (it will be treated as a @emph{singularia
-tantum}). The same behaviour occurs with ``glasses'', and while it is a @emph{plurale
-tantum} internally it will be represented as a @emph{singularia tantum}, but the
+tantum}). The same behaviour occurs with ``glasses''@comma{} and while it is a @emph{plurale
+tantum} internally it will be represented as a @emph{singularia tantum}@comma{} but the
 behaviour is identical and so this is fine.
 
 @node Alias terms
 @subsection Alias terms
 
 Sometimes a term may be known by multiple names. Such a situation is supported
-by the use of ``alias terms'', who's definition is simply the key of the canonical
+by the use of ``alias terms''@comma{} who's definition is simply the key of the canonical
 term.
 
-This is best illustrated through an example, for which we will visit the field
+This is best illustrated through an example@comma{} for which we will visit the field
 of molecular biology.
 
 @example
 - beta sheet :: Common structural motif in proteins in which different sections
-  of the polypeptide chain run alongside each other, joined together by hydrogen
+  of the polypeptide chain run alongside each other@comma{} joined together by hydrogen
   bonding between atoms of the polypeptide backbone.
 @end example
 
 The beta sheet may also be referred to using the greek letter β instead of
-``beta'', or as the ``beta pleated sheet''. We can support these variants like so:
+``beta''@comma{} or as the ``beta pleated sheet''. We can support these variants like so:
 
 @example
 - \beta sheet :: beta sheet
@@ -372,33 +372,33 @@ The beta sheet may also be referred to using the greek letter β instead of
 - \beta-pleated sheet :: beta sheet
 @end example
 
-Since the definition of each of these terms is an exact match for ``beta sheet'',
+Since the definition of each of these terms is an exact match for ``beta sheet''@comma{}
 they will be recognised as an alias for that term.
 
 @node Categorisation
 @subsection Categorisation
 
-To make working with a large collection of terms easier, you might use
-sub-headings, e.g.
+To make working with a large collection of terms easier@comma{} you might use
+sub-headings@comma{} e.g.
 
 @example
 * Glossary
 ** Animals
-- late pleistocene wolf :: an extinct lineage of the grey wolf, thought to be
+- late pleistocene wolf :: an extinct lineage of the grey wolf@comma{} thought to be
   the ancestor of the dog
-- ox, oxen :: A male bovine animal.
-- sheep, :: A domesticated ruminant mammal with a thick wooly coat.
+- ox@comma{} oxen :: A male bovine animal.
+- sheep@comma{} :: A domesticated ruminant mammal with a thick wooly coat.
 ** Technology
 - Emacs :: A lisp-based generic user-centric text manipulation environment that
   masquerades as a text editor.
-- glasses, :: An optical instrument worn to correct vision.
+- glasses@comma{} :: An optical instrument worn to correct vision.
 @end example
 
-This structure will be ignored on export, allowing you to structure things
+This structure will be ignored on export@comma{} allowing you to structure things
 freely without worrying about how it will affect the export. Should you wish to
-split up the exported entries into categories, this can be accomplished by using
+split up the exported entries into categories@comma{} this can be accomplished by using
 subheadings with the @samp{:category:} tag. You can nest category-tagged subheadings
-inside each other, but only the innermost category will be applied.
+inside each other@comma{} but only the innermost category will be applied.
 
 @example
 * Glossary
@@ -412,39 +412,39 @@ inside each other, but only the innermost category will be applied.
 @section Using terms
 
 Org Glossary presumes that you'll want to associate a defined term with every
-usage of it. As such, on export it scans the document for all instances of a
+usage of it. As such@comma{} on export it scans the document for all instances of a
 defined term and transforms them into one of the four glossary link types:
 @itemize
 @item
-@samp{gls}, singular lowercase
+@samp{gls}@comma{} singular lowercase
 @item
-@samp{glspl}, plural lowercase
+@samp{glspl}@comma{} plural lowercase
 @item
-@samp{Gls}, singular sentence case
+@samp{Gls}@comma{} singular sentence case
 @item
-@samp{Glspl}, plural sentence case
+@samp{Glspl}@comma{} plural sentence case
 @end itemize
 
-To switch from implicit associations to explicit, set @code{org-glossary-automatic} to
+To switch from implicit associations to explicit@comma{} set @code{org-glossary-automatic} to
 @code{nil} and then only @samp{gls}/@samp{glspl}/@samp{Gls}/@samp{Glspl} links will be picked up. To convert
-implicit associations to explicit links, you can run @samp{M-x
-org-glossary-apply-terms} (if nothing happens, try running @samp{M-x
+implicit associations to explicit links@comma{} you can run @samp{M-x
+org-glossary-apply-terms} (if nothing happens@comma{} try running @samp{M-x
 org-glossary-update-terms} first).
 
-Note that as Org Glossary relies on links, recognised usages can only occur in
-places where a link is appropriate (i.e. not inside a source block, verbatim
-text, or another link, etc.). The variable @code{org-glossary-autodetect-in-headings}
-determines whether terms in headings are automatically linked. By default, this
-is off and headings are ignored, since this behaviour is generally seen as
+Note that as Org Glossary relies on links@comma{} recognised usages can only occur in
+places where a link is appropriate (i.e. not inside a source block@comma{} verbatim
+text@comma{} or another link@comma{} etc.). The variable @code{org-glossary-autodetect-in-headings}
+determines whether terms in headings are automatically linked. By default@comma{} this
+is off and headings are ignored@comma{} since this behaviour is generally seen as
 undesirable.
 
-In addition to all this, there's a bit of special behaviour for indexing. As
-you can discuss a topic without explicitly stating it, we support
+In addition to all this@comma{} there's a bit of special behaviour for indexing. As
+you can discuss a topic without explicitly stating it@comma{} we support
 @samp{ox-texinfo}-style @samp{#+[cfkptv]?index} keywords. For example:
 
 @example
 #+index: penguin
-The Linux operating system has a flightless, fat waterfowl
+The Linux operating system has a flightless@comma{} fat waterfowl
 (affectionately named Tux) as its mascot.
 
 * Index
@@ -454,44 +454,44 @@ The Linux operating system has a flightless, fat waterfowl
 @node Printing definition sections
 @section Printing definition sections
 
-When exporting a document, all identified glossary headings are unconditionally
-stripped from the document. If nothing else is done, based on term usage
+When exporting a document@comma{} all identified glossary headings are unconditionally
+stripped from the document. If nothing else is done@comma{} based on term usage
 definition sections will be generated and appended to the document.
 
 Fine grained control over the generation of definition sections is possible via
-the @samp{#+print_glossary:} keyword, which disables the default ``generate and append to
+the @samp{#+print_glossary:} keyword@comma{} which disables the default ``generate and append to
 document'' behaviour.
 
 Simply inserting a @samp{#+print_glossary:} keyword will result in the default
 generated definition sections being inserted at the location of the
-@samp{#+print_glossary:} keyword. However, customisation of the behaviour is possible
-via a number of babel-style @samp{:key value} options, namely:
+@samp{#+print_glossary:} keyword. However@comma{} customisation of the behaviour is possible
+via a number of babel-style @samp{:key value} options@comma{} namely:
 @itemize
 @item
-@samp{:type} (@code{glossary acronym index} by default), the specific glossary-like
+@samp{:type} (@code{glossary acronym index} by default)@comma{} the specific glossary-like
 structures that definition sections should be generated for
 @item
-@samp{:level} (@code{0} by default), both:
+@samp{:level} (@code{0} by default)@comma{} both:
 @itemize
 @item
-The scope in which term uses should be searched for, with 0 representing the
-whole document, 1 within the parent level-1 heading, 2 the parent level-2
-heading, etc.
+The scope in which term uses should be searched for@comma{} with 0 representing the
+whole document@comma{} 1 within the parent level-1 heading@comma{} 2 the parent level-2
+heading@comma{} etc.
 @item
 One less than the minimum inserted heading level.
 @end itemize
 @item
-@samp{:consume} (@code{nil} by default), if @samp{t} or @samp{yes} then marks terms defined here as having
-been defined, preventing them from being listed in any other @samp{#+print_glossary:}
+@samp{:consume} (@code{nil} by default)@comma{} if @samp{t} or @samp{yes} then marks terms defined here as having
+been defined@comma{} preventing them from being listed in any other @samp{#+print_glossary:}
 unless @samp{:all} is set to @samp{t} or @samp{yes}.
 @item
-@samp{:all} (@code{nil} by default), behaves as just described in @samp{:consumed}.
+@samp{:all} (@code{nil} by default)@comma{} behaves as just described in @samp{:consumed}.
 @item
-@samp{:only-contents} (@code{nil} by default), if @samp{t} or @samp{yes} then the @code{:heading} (from the
+@samp{:only-contents} (@code{nil} by default)@comma{} if @samp{t} or @samp{yes} then the @code{:heading} (from the
 export template) is excluded from the generated content.
 @end itemize
 
-Putting this all together, the default @samp{#+print_glossary:} command written out in
+Putting this all together@comma{} the default @samp{#+print_glossary:} command written out in
 full is:
 
 @example
@@ -510,7 +510,7 @@ Run @code{org-glossary-update-terms} to update an buffer-local list of defined t
 Add some fontification rules to make term uses stand out.
 @end enumerate
 
-The local list of defined terms and fontification allow for a few niceties, such
+The local list of defined terms and fontification allow for a few niceties@comma{} such
 as:
 @itemize
 @item
@@ -520,10 +520,10 @@ Calling @samp{M-x org-glossary-goto-term-definition} or clicking on a fontified 
 to go to the definition
 @item
 @samp{M-x org-glossary-insert-term-reference} to view the list of currently defined
-terms, and perhaps insert a use.
+terms@comma{} and perhaps insert a use.
 @item
-In the case of @emph{Text Substitutions}, displaying the replacement text on top of
-the use, when @code{org-glossary-display-substitute-value} is non-nil.
+In the case of @emph{Text Substitutions}@comma{} displaying the replacement text on top of
+the use@comma{} when @code{org-glossary-display-substitute-value} is non-nil.
 @end itemize
 
 @node Export configuration
@@ -541,21 +541,21 @@ the use, when @code{org-glossary-display-substitute-value} is non-nil.
 @section Setting export parameters
 
 The content generated for export is governed by templates defined in
-@code{org-glossary-export-specs}. We will discuss them in detail shortly, but for now
+@code{org-glossary-export-specs}. We will discuss them in detail shortly@comma{} but for now
 we consider that in different situations we will want different generated
 content. There are two levels on which this applies:
 @enumerate
 @item
 By export backend
 @item
-By the type of glossary-like structure (Glossary, Acronyms, Index, etc.)
+By the type of glossary-like structure (Glossary@comma{} Acronyms@comma{} Index@comma{} etc.)
 @end enumerate
 
 This is accounted for by creating an @emph{alist of alists of templates}. This is a
-bit of a mouthful, so let's unpack what exactly is going on.
+bit of a mouthful@comma{} so let's unpack what exactly is going on.
 
-First, we create associations between export backends and specs, with the
-special ``backend'' @samp{t} as the default value, i.e.
+First@comma{} we create associations between export backends and specs@comma{} with the
+special ``backend'' @samp{t} as the default value@comma{} i.e.
 
 @example
 ((t . DEFAULT-TEMPLATE-SET)
@@ -564,7 +564,7 @@ special ``backend'' @samp{t} as the default value, i.e.
  ...)
 @end example
 
-When selecting the appropriate template set, we actually check each entry
+When selecting the appropriate template set@comma{} we actually check each entry
 against the current export backend using @code{org-export-derived-backend-p} (in
 order). This has two implications:
 @itemize
@@ -572,11 +572,11 @@ order). This has two implications:
 You can export to derived backends (e.g. beamer) and things should just work
 @item
 If specifying a template set for a derived backend (e.g. @samp{beamer}) be sure to
-put it @emph{before} any parent backends (i.e. @samp{latex}, in @samp{beamer}'s case) in
+put it @emph{before} any parent backends (i.e. @samp{latex}@comma{} in @samp{beamer}'s case) in
 @code{org-glossary-export-specs} to ensure it is actually used.
 @end itemize
 
-The backend-appropriate template set is itself an alist of templates, like so:
+The backend-appropriate template set is itself an alist of templates@comma{} like so:
 
 @example
 ((t . TEMPLATE)
@@ -585,9 +585,9 @@ The backend-appropriate template set is itself an alist of templates, like so:
  (index . TEMPLATE))
 @end example
 
-Once again, @samp{t} gives the default value. For each of the types listed in
-@code{org-glossary-headings}, the template is filled out, pulling first from the
-backend-specific defaults template, then the global defaults. This gives a
+Once again@comma{} @samp{t} gives the default value. For each of the types listed in
+@code{org-glossary-headings}@comma{} the template is filled out@comma{} pulling first from the
+backend-specific defaults template@comma{} then the global defaults. This gives a
 complete template set which governs the export behaviour for each type of
 glossary-like structure for the current backend.
 
@@ -596,7 +596,7 @@ glossary-like structure for the current backend.
 
 The export of term uses and definitions is governed by @emph{template sets}. The
 default template set is given by @code{(alist-get t (alist-get t
-~org-glossary-export-specs))}, the default value of which is given by the
+~org-glossary-export-specs))}@comma{} the default value of which is given by the
 following property list:
 
 @example
@@ -612,61 +612,61 @@ following property list:
 @end example
 
 
-Each property refers to a particular situation, and the value is either:
+Each property refers to a particular situation@comma{} and the value is either:
 @itemize
 @item
 A format string that represents the content that should be used
 @item
-A function with the same signature as @code{org-glossary--export-template}, that
+A function with the same signature as @code{org-glossary--export-template}@comma{} that
 generated the replacement content string.
 @end itemize
 
-The @code{:use}, @code{:first-use}, @code{:definition}, and @code{:backref} properties are applied during
+The @code{:use}@comma{} @code{:first-use}@comma{} @code{:definition}@comma{} and @code{:backref} properties are applied during
 backend-specific content transcoding (i.e. using the syntax of the backend's
-output), while @code{:definition-structure}, @code{:category-heading}, and @code{:letter-seperator}
+output)@comma{} while @code{:definition-structure}@comma{} @code{:category-heading}@comma{} and @code{:letter-seperator}
 are applied to a copy of the Org document just prior to the backend-specific
 export process (and so should be written using Org syntax).
 
 The format strings can make use of the following tokens:
 @itemize
 @item
-@samp{%t}, the term being defined/used. This is pluralised and capitalised
+@samp{%t}@comma{} the term being defined/used. This is pluralised and capitalised
 automatically based on the link type (@samp{gls}/@samp{glspl}/@samp{Gls}/@samp{Glspl}).
 @item
-@samp{%v}, the term definition value.
+@samp{%v}@comma{} the term definition value.
 @item
-@samp{%k}, the term key.
+@samp{%k}@comma{} the term key.
 @item
-@samp{%K}, the term key buffer-local nonce (number used only once). This will only be
+@samp{%K}@comma{} the term key buffer-local nonce (number used only once). This will only be
 consistent within a particular Emacs session.
 @item
-@samp{%l}, the first letter of the term, in lower case.
+@samp{%l}@comma{} the first letter of the term@comma{} in lower case.
 @item
-@samp{%L}, the first letter of the term, in upper case.
+@samp{%L}@comma{} the first letter of the term@comma{} in upper case.
 @item
-@samp{%r}, the term reference index (only applicable to @code{:use} and @code{:first-use}).
+@samp{%r}@comma{} the term reference index (only applicable to @code{:use} and @code{:first-use}).
 @item
-@samp{%n}, the number of times the term is used/referenced.
+@samp{%n}@comma{} the number of times the term is used/referenced.
 @item
-@samp{%c}, the term category.
+@samp{%c}@comma{} the term category.
 @item
-@samp{%u}, the result of @code{:use} (primarily intended for convenience with @code{:first-use})
+@samp{%u}@comma{} the result of @code{:use} (primarily intended for convenience with @code{:first-use})
 @item
-@samp{%d}, the result of @code{:definition} (only applicable to @code{:definition-structure})
+@samp{%d}@comma{} the result of @code{:definition} (only applicable to @code{:definition-structure})
 @item
-@samp{%b}, all the @code{:backref} results joined with @samp{", "} (only applicable to @code{:definition-structure}).
+@samp{%b}@comma{} all the @code{:backref} results joined with @samp{"@comma{} "} (only applicable to @code{:definition-structure}).
 @end itemize
 
 The @code{:definition-structure-preamble} and @code{:heading} parameters are literal strings
 also inserted to the copy of the Org document just prior to backend-specific
 export stages.
 
-To illustrate how these properties come into play, the following example uses
+To illustrate how these properties come into play@comma{} the following example uses
 the property names in place of their generated content.
 
 @example
-Here's some text and now the term :first-use, if I use the term again
-it is now :use. Once more, :use.
+Here's some text and now the term :first-use@comma{} if I use the term again
+it is now :use. Once more@comma{} :use.
 
 Now we have the appendix with glossary-like definitions.
 
@@ -678,21 +678,21 @@ Now we have the appendix with glossary-like definitions.
 :definition-structure(:definition def-value :backref)
 @end example
 
-To avoid superfluous letter headings (i.e. not helpful), we have
+To avoid superfluous letter headings (i.e. not helpful)@comma{} we have
 @code{org-glossary-print-letter-minimums}. This variable specifies a threshold minimum
 number of distinct initial term letters and terms with the same letter before
 the @code{:letter-heading} template should be inserted.
 
-If @code{:heading}, @code{:category-heading}, or @code{:letter-heading} start with @samp{"* "} then
+If @code{:heading}@comma{} @code{:category-heading}@comma{} or @code{:letter-heading} start with @samp{"* "} then
 asterisks will be automatically prefixed to set the headings to an appropriate
 level.
 
 @node Creating a new glossary type
 @section Creating a new glossary type
 
-Let's consider a few examples. To start with, say we want to be able to define
-indexed terms under the heading @samp{Indices} instead of @samp{Index}. To accomplish this,
-all you need to do is add an entry to @code{org-glossary-headings}, which can be done
+Let's consider a few examples. To start with@comma{} say we want to be able to define
+indexed terms under the heading @samp{Indices} instead of @samp{Index}. To accomplish this@comma{}
+all you need to do is add an entry to @code{org-glossary-headings}@comma{} which can be done
 via the customisation interface or with the following snippet:
 
 @example
@@ -702,25 +702,25 @@ via the customisation interface or with the following snippet:
                                '(("Indices" . index)))))
 @end example
 
-Should we actually want to have this be reflected in the export, we could
+Should we actually want to have this be reflected in the export@comma{} we could
 either:
 @itemize
 @item
-Rename the @samp{index} heading to @samp{* Indices}, or
+Rename the @samp{index} heading to @samp{* Indices}@comma{} or
 @item
-Create a near-copy of @samp{index}, just changing the heading
+Create a near-copy of @samp{index}@comma{} just changing the heading
 @end itemize
 
-In the first case, all we need to do is execute the following snippet.
+In the first case@comma{} all we need to do is execute the following snippet.
 
 @example
 (org-glossary-set-export-spec t 'index :heading "* Indices)
 @end example
 
-Should we actually want to have this be reflected in the export, instead of
+Should we actually want to have this be reflected in the export@comma{} instead of
 associating @samp{Indices} with the pre-defined index term we would first add an
 @code{("Indices" . indicies)} pair to @code{org-glossary-headings} (as before).
-Then, we can copy each @samp{index} template currently in @code{org-glossary-export-specs} and
+Then@comma{} we can copy each @samp{index} template currently in @code{org-glossary-export-specs} and
 simply update the default @code{:heading} as we've just done for @samp{index}.
 
 @example
@@ -731,11 +731,11 @@ simply update the default @code{:heading} as we've just done for @samp{index}.
 (org-glossary-set-export-spec t 'indices :heading "* Indices)
 @end example
 
-For our final example, let's say we wanted to add support for @samp{Abbreviations}.
-This works in much the same way as Acronyms, just with shortened forms of words
+For our final example@comma{} let's say we wanted to add support for @samp{Abbreviations}.
+This works in much the same way as Acronyms@comma{} just with shortened forms of words
 or phrases not constructed from the first letters. After adding an
 @code{("Abbreviations" . abbreviation)} pair to @code{org-glossary-headings} in the same
-manner as earlier, this is as simple as:
+manner as earlier@comma{} this is as simple as:
 
 @example
 (push '(abbreviation :heading "* Abbreviations"
@@ -746,13 +746,13 @@ manner as earlier, this is as simple as:
 @node Tweaking specific exports
 @section Tweaking specific exports
 
-Instead of overwriting @code{org-glossary-export-specs}, it is recommended that you
+Instead of overwriting @code{org-glossary-export-specs}@comma{} it is recommended that you
 instead make use of @code{setcdr} or @code{plist-put} like so:
 
 @example
 (org-glossary-set-export-spec 'latex t
   :backref "gls-%k-use-%r"
-  :backref-seperator ","
+  :backref-seperator "@comma{}"
   :definition-structure "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\ifnum%n>0 \\labelcpageref@{@@@@%b@@@@latex:@}\\fi@@@@\n")
 @end example
 
@@ -778,7 +778,7 @@ particularly attached to from freely updating.
 @section Adding a new export backend
 
 Adding a new export spec is as easy as pushing a spec list to
-@code{org-glossary-export-specs}, for example should we want to add an @samp{ox-md} backend we
+@code{org-glossary-export-specs}@comma{} for example should we want to add an @samp{ox-md} backend we
 could do this:
 
 @example
@@ -791,8 +791,8 @@ could do this:
 We need to remember to use @samp{\colon@{@}} instead of @samp{:} to avoid it being interpreted
 as Org fixed-width syntax.
 
-Alternatively, we could use @code{org-glossary-set-export-spec}, which has the
-advantage of being idempotent, and I would argue a little clearer.
+Alternatively@comma{} we could use @code{org-glossary-set-export-spec}@comma{} which has the
+advantage of being idempotent@comma{} and I would argue a little clearer.
 
 @example
 (org-glossary-set-export-spec 'md t
