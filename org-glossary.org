@@ -65,6 +65,11 @@ love.
 If you'd like to see a visual indication of term uses while in org-mode, call
 =M-x org-glossary-mode=.
 
+Term references will be highlighted according to
+~org-glossary-fontify-type-faces~, and each highlight has the
+~org-glossary-ref-keymap~ applied, which defines left-mouse and return actions by
+default.
+
 ** Design
 
 In large or technical documents, there's often a need for an appendix clarifying

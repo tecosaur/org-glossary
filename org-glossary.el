@@ -270,6 +270,17 @@ A fix for this is described in <https://tex.stackexchange.com/a/620066>."
                        (plist :value-type
                               (string :tag "Template")))))
 
+(defcustom org-glossary-ref-keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map [follow-link] 'mouse-face)
+    (define-key map [mouse-2] 'org-glossary-goto-term-definition)
+    (define-key map (kbd "RET") 'org-glossary-goto-term-definition)
+    (define-key map [return] 'org-glossary-goto-term-definition)
+    map)
+  "Keymap for linked references with `org-glossary-mode'."
+  :type 'keymap
+  :group 'org-glossary)
+
 (defcustom org-glossary-fontify-types-differently t
   "Whether to use the org-glossary-TYPE-term faces.
 Or just use the org-glossary-term face for everything."
@@ -1819,11 +1830,7 @@ This should only be run as an export hook."
              (0 '(face org-glossary-term
                   help-echo org-glossary--help-echo-from-textprop
                   mouse-face (:inverse-video t)
-                  keymap (keymap
-                          (follow-link . mouse-face)
-                          (mouse-2 . org-glossary-goto-term-definition)
-                          ("RET" . org-glossary-goto-term-definition)
-                          (return . org-glossary-goto-term-definition)))
+                  keymap ,org-glossary-ref-keymap)
                 t)))))
   per-term-p)
 
@@ -1931,11 +1938,7 @@ This should only be run as an export hook."
       `(help-echo
         org-glossary--help-echo-from-textprop
         mouse-face (:inverse-video t)
-        keymap (keymap
-                (follow-link . mouse-face)
-                (mouse-2 . org-glossary-goto-term-definition)
-                ("RET" . org-glossary-goto-term-definition)
-                (return . org-glossary-goto-term-definition)))))))
+        keymap ,org-glossary-ref-keymap)))))
 
 (defvar-local org-glossary--help-echo-cache (make-hash-table :test #'equal)
   "A hash table for quickly looking up fontified help-echo strings.")

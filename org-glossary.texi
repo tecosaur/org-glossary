@@ -139,6 +139,11 @@ love.
 If you'd like to see a visual indication of term uses while in org-mode, call
 @samp{M-x org-glossary-mode}.
 
+Term references will be highlighted according to
+@code{org-glossary-fontify-type-faces}@comma{} and each highlight has the
+@code{org-glossary-ref-keymap} applied@comma{} which defines left-mouse and return actions by
+default.
+
 @node Design
 @section Design
 
