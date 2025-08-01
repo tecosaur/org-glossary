@@ -49,6 +49,7 @@
 ;;
 ;;; Code:
 
+(require 'seq)
 (require 'org)
 (require 'org-element)
 
@@ -130,7 +131,8 @@ keyword's value, or a plist of the form emitted by
 
 (defcustom org-glossary-collection-root nil
   "A base path prefixed to any per-document glossary sources.
-If this is set to a directory, ensure that you include the trailing slash."
+If this is set to a directory, ensure that you include the trailing slash.
+If this is a list, then each member will be tried in order until a definition is found."
   :type '(choice (const nil) (string :tag "Path")))
 
 (defvar-local org-glossary--extra-term-sources nil
@@ -2077,25 +2079,33 @@ location with the extension .org, that file will be used as the
 location."
   (append
    org-glossary-global-terms
-   (mapcar
-    (lambda (source-short)
-      (let ((fq-source (concat org-glossary-collection-root source-short)))
-        (cond
-         ((file-exists-p (concat fq-source ".org"))
-          (concat fq-source ".org"))
-         ((string-match-p "\\.org::[*#]." fq-source)
-          (concat fq-source " :only-contents t"))
-         (t fq-source))))
-    (org-babel-balanced-split
-     (or (mapconcat
-          #'identity
-          (org-element-map (or parse-tree (org-element-parse-buffer)) 'keyword
-            (lambda (keyword)
-              (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
-                   (org-element-property :value keyword))))
-          " ")
-         "")
-     ?\s))))
+   (let ((collection-roots (if (listp org-glossary-collection-root)
+                               org-glossary-collection-root
+                             (list org-glossary-collection-root))))
+     (seq-mapcat
+      (lambda (collection-root)
+        (mapcar
+         (lambda (source-short)
+           (let ((fq-source (concat collection-root source-short)))
+             (cond
+              ((file-exists-p (concat fq-source ".org"))
+               (concat fq-source ".org"))
+              ((string-match-p "\\.org::[*#]." fq-source)
+               (concat fq-source " :only-contents t"))
+              ;; if we cannot find it, keep it for the error message
+              ;; this will create a lot of error messages, even if the
+              ;; source is found
+              (t fq-source))))
+         (org-babel-balanced-split
+          (or (mapconcat
+               #'identity
+               (org-element-map (or parse-tree (org-element-parse-buffer)) 'keyword
+                 (lambda (keyword)
+                   (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
+                        (org-element-property :value keyword))))
+               " ")
+              "")
+          ?\s))) collection-roots))))
 
 (defun org-glossary--term-status-message (current-terms &optional initial-terms)
   "Emit a status message, based on CURRENT-TERMS and INITIAL-TERMS."
