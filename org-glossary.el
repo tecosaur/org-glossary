@@ -1276,11 +1276,17 @@ optional arguments:
                     (funcall (if capitalized-p #'org-glossary--sentance-case
                                #'identity)
                              (if plural-p
-                                 (let ((components (split-string value-str)))
-                                   (setf (car (last components))
-                                         (funcall org-glossary-plural-function
-                                                  (car (last components))))
-                                   (mapconcat #'identity components " "))
+                                 (if (and (stringp value-str)
+                                          (not (string-empty-p value-str)))
+                                     (let ((components (split-string value-str)))
+                                       (if components
+                                           (progn
+                                             (setf (car (last components))
+                                                   (funcall org-glossary-plural-function
+                                                            (car (last components))))
+                                             (mapconcat #'identity components " "))
+                                         value-str))
+                                   value-str)
                                value-str))))
             parameters))
     (format-spec template (nreverse parameters))))
