@@ -1122,7 +1122,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
 
 ;;; Automatic term updating
 
-(defun org-glossary--register-buffer-dependencies (&optional path-spec)
+(defun org-glossary--register-buffer-dependencies (&optional path-spec already-seen)
   "Watch all definition dependencies of PATH-SPEC for updates."
   (let ((path-spec (or path-spec (org-glossary--complete-path-spec))))
     (let* ((term-cache (cdr (assoc path-spec org-glossary--terms-cache)))
@@ -1131,11 +1131,12 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
                            (plist-get term-cache :extra-term-sources))))
       (org-glossary--deregister-buffer-dependencies path-spec)
       (dolist (dep-pspec (delete path-spec (nconc extras included)))
-        (if-let ((dep-files (assoc dep-pspec org-glossary--path-dependencies)))
-            (unless (member path-spec dep-files)
-              (push path-spec (cdr dep-files)))
-          (push (list dep-pspec path-spec) org-glossary--path-dependencies))
-        (org-glossary--register-buffer-dependencies dep-pspec)))))
+        (unless (member dep-pspec already-seen)
+          (if-let ((dep-files (assoc dep-pspec org-glossary--path-dependencies)))
+              (unless (member path-spec dep-files)
+                (push path-spec (cdr dep-files)))
+            (push (list dep-pspec path-spec) org-glossary--path-dependencies))
+          (org-glossary--register-buffer-dependencies dep-pspec (cons path-spec already-seen)))))))
 
 (defun org-glossary--deregister-buffer-dependencies (&optional path-spec)
   "Stop watching definition dependencies for PATH-SPEC."
