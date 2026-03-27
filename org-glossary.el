@@ -1094,11 +1094,11 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
 
 (defun org-glossary--record-term-usage (term-entry record)
   "Record TERM-ENTRY's usage with RECORD, and give the use index."
-  (let* ((canonical-term (or (plist-get term-entry :alias-for) term-entry))
-         (uses (plist-get canonical-term :uses))
+  (let* ((uses (plist-get term-entry :uses))
          (index (1+ (or (caar uses) 0))))
-    ;; (plist-put canonical-term :uses (nconc (list (cons index record)) uses))
-    (push (cons index record) (plist-get canonical-term :uses))
+    (push (cons index record) (plist-get term-entry :uses))
+    (when-let ((canonical-term (plist-get term-entry :alias-for)))
+      (org-glossary--record-term-usage canonical-term record))
     index))
 
 (defun org-glossary--clear-term-usage (term-entry)
