@@ -367,6 +367,12 @@ See also `org-glossary-snippet-fontication-hooks'."
 Set to nil to disable automatic update propagation."
   :type '(choice number (const :tag "Do not update" nil)))
 
+;;; Functions used
+
+(declare-function org-export--prepare-file-contents "ox")
+(declare-function org-export--inclusion-absolute-lines "ox")
+(declare-function org-export-filter-apply-functions "ox")
+
 ;;; Obtaining term definitions
 
 (defun org-glossary--get-terms (&optional path-spec no-extra-sources already-included)
