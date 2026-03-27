@@ -1705,7 +1705,7 @@ For inspiration, see https://github.com/RosaeNLG/rosaenlg/blob/master/packages/e
 (defun org-glossary-english-plural (word)
   "Generate the plural form of WORD."
   (or (let ((plural
-             (alist-get (if (string-match-p "^[[:upper]]+$" word)
+             (alist-get (if (string-match-p "^[[:upper:]]+$" word)
                             (downcase word) word)
                         org-glossary-english-plural-exceptions
                         nil nil #'string=))
