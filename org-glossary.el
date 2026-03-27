@@ -917,7 +917,7 @@ This is necessitated by problems when trying to apply
 
 (defvar org-glossary--mrx-max-bin-size 800
   "The maximum number of strings that should be combined into a single regexp.
-Larger is better, however typically 'invalid-regexp \"Regular
+Larger is better, however typically \\='invalid-regexp \"Regular
 expression too big\"' is seen with around 1000+ terms.")
 
 (defun org-glossary--mrx-construct (&rest tagged-strings)
@@ -927,11 +927,15 @@ expression too big\"' is seen with around 1000+ terms.")
         (if (< n org-glossary--mrx-max-bin-size)
             (progn (push str accumulated)
                    (setq n (1+ n)))
-          (push (cons (car tag-strs) (regexp-opt accumulated 'words)) bins)
-          (setq accumulated nil
-                n 0)))
+          (push (cons (car tag-strs)
+                      (concat "\\<" (regexp-opt accumulated t) "\\(?:\\>\\|'\\)"))
+                bins)
+          (setq accumulated (list str)
+                n 1)))
       (when accumulated
-        (push (cons (car tag-strs) (regexp-opt accumulated 'words)) bins)
+        (push (cons (car tag-strs)
+                    (concat "\\<" (regexp-opt accumulated t) "\\(?:\\>\\|'\\)"))
+              bins)
         (setq accumulated nil
               n 0)))
     bins))
@@ -1051,7 +1055,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
   (let ((term-str
          (replace-regexp-in-string
           "[ \n\t]+" " "
-          (substring-no-properties (match-string 0))))
+          (substring-no-properties (match-string 1))))
         (plural-p (eq org-glossary--mrx-last-tag 'plural))
         (case-fold-search nil)
         capitalized-p term-entry)
@@ -1927,10 +1931,10 @@ This should only be run as an export hook."
 
 (defun org-glossary--fontify-term ()
   "Fontify the matched term."
-  (let ((term-entry (org-glossary--quicklookup (match-string 0)))
+  (let ((term-entry (org-glossary--quicklookup (match-string 1)))
         case-fold-search)
     (font-lock-prepend-text-property
-     (match-beginning 0) (match-end 0)
+     (match-beginning 1) (match-end 1)
      'face
      (pcase (plist-get term-entry :type)
        ('substitution
@@ -1941,7 +1945,7 @@ This should only be run as an export hook."
         (or (alist-get type org-glossary-fontify-type-faces)
             'org-glossary-term))))
     (add-text-properties
-     (match-beginning 0) (match-end 0)
+     (match-beginning 1) (match-end 1)
      (nconc
       (and (eq (plist-get term-entry :type) 'substitution)
            org-glossary-display-substitute-value
