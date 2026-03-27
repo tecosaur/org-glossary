@@ -1347,14 +1347,16 @@ exported in place of the paragraph itself."
                         (org-export-filter-apply-functions
                          (plist-get info :filter-parse-tree)
                          value info)))
-                   (org-export-data
-                    (if (and (= (length filtered-value) 1)
-                             (eq (org-element-type (car filtered-value))
-                                 'paragraph))
-                        (mapcar #'org-element-extract-element
-                                (org-element-contents (car filtered-value)))
-                      filtered-value)
-                    info))
+                   (string-trim
+                    (org-export-data
+                     (if (and (= (length filtered-value) 1)
+                              (eq (org-element-type (car filtered-value))
+                                  'paragraph))
+                         (mapcar #'org-element-extract-element
+                                 (org-element-contents
+                                  (org-element-copy (car filtered-value) t)))
+                       filtered-value)
+                     info)))
                  (plist-get info :exported-data)))))
 
 (defun org-glossary--sentence-case (s)
