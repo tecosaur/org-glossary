@@ -289,7 +289,7 @@ Or just use the org-glossary-term face for everything."
   '((glossary . org-glossary-glossary-term)
     (acronym . org-glossary-acronym-term)
     (index . org-glossary-index-term)
-    (substitute . org-glossary-substitution-term))
+    (substitution . org-glossary-substitution-term))
   "An alist of types and the faces that should be used.
 This only applies when `org-glossary-fontify-types-differently'
 is non-nil."
@@ -365,7 +365,7 @@ See also `org-glossary-snippet-fontication-hooks'."
 (defcustom org-glossary-idle-update-period 0.5
   "Idle time in seconds used when updating term definitions.
 Set to nil to disable automatic update propagation."
-  :type '(choice number (const nil :tag "Do not update")))
+  :type '(choice number (const :tag "Do not update" nil)))
 
 ;;; Obtaining term definitions
 
@@ -821,15 +821,19 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
             (let (message-log-max)
               (message "Scanning for term usage: (%s%%)"
                        (/ (* 100 (point)) (point-max))))
-            (sit-for 0.01)
+            (redisplay)
             (setq last-redisplay (float-time)))
           (save-match-data
-            (setq element-at-point (org-element-at-point)
-                  element-context (org-element-context element-at-point)))
+            (save-excursion
+              (goto-char (match-beginning 0))
+              (setq element-at-point (org-element-at-point)
+                    element-context (org-element-context element-at-point))))
           (cond
            ((or (org-glossary--within-definition-or-unexported-p element-context)
                 (and (not org-glossary-autodetect-in-headings)
                      (eq 'headline (org-element-type element-at-point)))
+                (memq (org-element-type element-at-point)
+                      '(comment comment-block))
                 (and (eq 'keyword (org-element-type element-at-point))
                      (not (member (org-element-property :key element-at-point)
                                   org-element-parsed-keywords))))
@@ -972,8 +976,8 @@ expression too big\"' is seen with around 1000+ terms.")
   "Whether HEADING is recognised as a definition heading."
   (and (member (org-element-property :raw-value heading)
                org-glossary--heading-names)
-       (or (= 1 (org-element-property :level heading))
-           (not org-glossary-toplevel-only))
+       (or (not org-glossary-toplevel-only)
+           (= 1 (org-element-property :level heading)))
        (not (org-element-property :commentedp heading))))
 
 (defun org-glossary--within-unexported-p (datum)
@@ -1371,7 +1375,8 @@ exported in place of the paragraph itself."
 
 (defun org-glossary--sentence-case (s)
   "Return a sentence-cased version of S."
-  (concat (string (upcase (aref s 0))) (substring s 1)))
+  (if (string-empty-p s) s
+    (concat (string (upcase (aref s 0))) (substring s 1))))
 
 (defun org-glossary--downcase-if-sentence-case (str)
   "If STR is in sentence case, return a `downcase'd version."
@@ -1938,7 +1943,7 @@ This should only be run as an export hook."
       (puthash org-text
                (with-temp-buffer
                  (insert org-text)
-                 (let (org-mode-hook org-glossary-snippet-fontication-hooks)
+                 (let ((org-mode-hook org-glossary-snippet-fontication-hooks))
                    (org-mode))
                  (font-lock-ensure)
                  (buffer-string))
@@ -2096,7 +2101,8 @@ This should only be run as an export hook."
           org-glossary--term-mrx
           (org-glossary--mrx-construct-from-terms org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal)
-          org-glossary--help-echo-cache (make-hash-table :test #'equal))
+          org-glossary--help-echo-cache (make-hash-table :test #'equal)
+          org-glossary--fontified-snippet-cache (make-hash-table :test #'equal))
     (when show-info
       (org-glossary--term-status-message
        (mapcar (lambda (trm) (plist-get trm :term))
