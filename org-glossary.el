@@ -1382,7 +1382,7 @@ LEVEL (by default: 1). If LEVEL is set to 0, no heading is produced.
 Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (let ((terms-by-type
          (org-glossary--group-terms
-          (org-glossary--sort-plist
+          (org-glossary--sort-plists
            (cl-remove-if
             (lambda (trm)
               (or (and (not (plist-get trm :uses)) ; Occurs when `trm' is an alias.
@@ -1416,7 +1416,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   "Produce a string printing TERMS for TYPE in BACKEND split by category."
   (let ((terms-by-category
          (org-glossary--group-terms
-          (org-glossary--sort-plist terms :key #'org-glossary--string>)
+          (org-glossary--sort-plists terms :key #'org-glossary--string>)
           (lambda (trm) (plist-get trm :category))))
         (export-spec (alist-get type org-glossary--current-export-spec))
         content cat-heading)
@@ -1445,7 +1445,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   "Produce an org-mode AST for TYPE in BACKEND defining ASSEMBLED-TERMS."
   (let* ((terms-by-letter
           (org-glossary--group-terms
-           (org-glossary--sort-plist terms :key #'org-glossary--string>)
+           (org-glossary--sort-plists terms :key #'org-glossary--string>)
            (lambda (trm) (upcase (aref (plist-get trm :key) 0)))))
          (num-terms-by-letter (mapcar (lambda (trms) (length (cdr trms)))
                                       terms-by-letter))
@@ -1529,9 +1529,9 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
           groups)
        groups))))
 
-(defun org-glossary--sort-plist (plist key predicate)
-  "Sort PLIST by KEY according to PREDICATE."
-  (sort plist
+(defun org-glossary--sort-plists (plists key predicate)
+  "Sort PLISTS by KEY according to PREDICATE."
+  (sort plists
         (lambda (a b)
           (funcall predicate
                    (plist-get a key)
