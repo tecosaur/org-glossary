@@ -1270,9 +1270,11 @@ optional arguments:
         case-fold-search)
     (when org-glossary-canonicalise-aliases
       (setq term-entry canonical-term))
-    (when (string-match-p "%k" template)
+    (when (and (not (assq ?k extra-parameters))
+               (string-match-p "%k" template))
       (push (cons ?k (plist-get canonical-term :key)) parameters))
-    (when (string-match-p "%K" template)
+    (when (and (not (assq ?K extra-parameters))
+               (string-match-p "%K" template))
       (push (cons ?K (org-glossary--nonce-index
                       (plist-get
                        (if (eq form :definition-structure)
@@ -1280,36 +1282,44 @@ optional arguments:
                          canonical-term)
                        :key-nonce)))
             parameters))
-    (when (string-match-p "%t" template)
+    (when (and (not (assq ?t extra-parameters))
+               (string-match-p "%t" template))
       (push (cons ?t (funcall (if (or capitalized-p (eq form :definition-structure))
                                   #'org-glossary--sentence-case
                                 #'identity)
                               (plist-get term-entry
                                          (if plural-p :term-plural :term))))
             parameters))
-    (when (string-match-p "%l" template)
+    (when (and (not (assq ?l extra-parameters))
+               (string-match-p "%l" template))
       (push (cons ?l (string (downcase (aref (plist-get term-entry :term) 0))))
             parameters))
-    (when (string-match-p "%L" template)
+    (when (and (not (assq ?l extra-parameters))
+               (string-match-p "%L" template))
       (push (cons ?L (string (upcase (aref (plist-get term-entry :term) 0))))
             parameters))
-    (when (and ref-index (string-match-p "%r" template))
+    (when (and ref-index
+               (not (assq ?r extra-parameters))
+               (string-match-p "%r" template))
       (push (cons ?r (number-to-string ref-index))
             parameters))
-    (when (string-match-p "%n" template)
+    (when (and (not (assq ?n extra-parameters))
+               (string-match-p "%n" template))
       (push (cons ?n (number-to-string
                       (length (plist-get term-entry :uses))))
             parameters))
-    (when (string-match-p "%c" template)
+    (when (and (not (assq ?c extra-parameters))
+               (string-match-p "%c" template))
       (push (cons ?c (plist-get canonical-term :category))
             parameters))
-    (when (string-match-p "%u" template)
+    (when (and (not (assq ?u extra-parameters))
+               (string-match-p "%u" template))
       (push (cons ?u (org-glossary--export-instance
                       backend info term-entry :use
                       ref-index plural-p capitalized-p
                       extra-parameters))
             parameters))
-    (when (and (not (memq ?v (mapcar #'car extra-parameters)))
+    (when (and (not (assq ?v extra-parameters))
                (string-match-p "%v" template))
       (push (cons ?v
                   (let ((value-str
@@ -1713,8 +1723,7 @@ the :consume parameter extracted from KEYWORD."
         (org-glossary--export-instance
          backend info term-entry :definition nil nil nil
          `((?t . ,capitalised-term)
-           (?k . ,(plist-get term-entry :key))
-           (?K . ,(number-to-string (plist-get term-entry :key-nonce))))))
+           (?k . ,(plist-get term-entry :key)))))
     key))
 
 (defun org-glossary--link-export-glsuse (index-term _desc backend info)
