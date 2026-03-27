@@ -1835,7 +1835,8 @@ This should only be run as an export hook."
         (insert (org-glossary--expand-print-keyword backend used-terms keyword)))
       (unless print-glossary-p
         (goto-char (point-max))
-        (insert "\n" (org-glossary--print-terms backend used-terms))))))
+        (insert "\n" (org-glossary--print-terms backend used-terms))))
+    (org-glossary--strip-uses org-glossary--terms)))
 
 (add-hook 'org-export-before-parsing-functions #'org-glossary--prepare-buffer)
 
