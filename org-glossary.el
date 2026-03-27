@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: abbrev docs tools
 ;; Homepage: https://github.com/tecosaur/org-glossary
-;; Package-Requires: ((emacs "28.1") (org "9.6"))
+;; Package-Requires: ((emacs "29.1") (org "9.7"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -18,8 +18,6 @@
 ;;  Defined terms and abbreviations in Org
 ;;
 ;;; Plan:
-;;
-;; TODO use `org-element-cache-map'
 ;;
 ;; TODO jump to usages
 ;;
@@ -427,17 +425,22 @@ If DO-IT-P is nil, then nothing will be done and TERM-SET will be returned."
                    (buffer-file-name))
             (current-buffer))))
          (parse-tree
-          (if path-buffer
-              (with-current-buffer path-buffer
-                (org-with-wide-buffer
-                 (org-element-parse-buffer)))
+          (cond
+           ((not path-buffer)
             (with-temp-buffer
               (setq buffer-file-name (plist-get path-spec :file))
               (org-glossary--include-once path-spec)
               (set-buffer-modified-p nil)
               (org-with-wide-buffer
-               (org-element-parse-buffer)))))
-         (terms (org-glossary--extract-terms parse-tree)))
+               (org-element-parse-buffer))))
+           ((not org-element-use-cache)
+            (with-current-buffer path-buffer
+              (org-with-wide-buffer
+               (org-element-parse-buffer))))))
+         (terms (if parse-tree
+                    (org-glossary--extract-terms parse-tree)
+                  (with-current-buffer path-buffer
+                    (org-glossary--extract-terms)))))
     (list :path path-spec
           :scan-time (current-time)
           :terms terms
@@ -448,12 +451,23 @@ If DO-IT-P is nil, then nothing will be done and TERM-SET will be returned."
              (org-glossary--parse-include-value
               location (and (plist-get path-spec :file)
                             (file-name-directory (plist-get path-spec :file)))))
-           (org-element-map parse-tree 'keyword
-             (lambda (kwd)
-               (when (string= "INCLUDE" (org-element-property :key kwd))
-                 (org-element-property :value kwd)))))
+           (if parse-tree
+               (org-element-map parse-tree 'keyword
+                 (lambda (kwd)
+                   (when (string= "INCLUDE" (org-element-property :key kwd))
+                     (org-element-property :value kwd))))
+             (with-current-buffer path-buffer
+               (org-element-cache-map
+                (lambda (kwd)
+                  (when (string= "INCLUDE" (org-element-property :key kwd))
+                    (org-element-property :value kwd)))
+                :granularity 'element
+                :restrict-elements 'keyword))))
           :extra-term-sources
-          (org-glossary--get-extra-term-sources parse-tree))))
+          (if parse-tree
+              (org-glossary--get-extra-term-sources parse-tree)
+            (with-current-buffer path-buffer
+              (org-glossary--get-extra-term-sources))))))
 
 (defun org-glossary--complete-path-spec (&optional path-spec)
   "Given a tentative PATH-SPEC, try to get a proper one.
@@ -632,29 +646,44 @@ then the quicklookup cache (`org-glossary--quicklookup-cache') will be cleared."
   "Find all terms defined in the current buffer.
 Note that this removes definition values from PARSE-TREE by
 side-effect when it is provided."
-  (let* ((parse-tree (or parse-tree
-                         (org-with-wide-buffer
-                          (org-element-parse-buffer))))
-         (buffer-file-name (org-element-property :path parse-tree)))
+  (cond
+   (parse-tree
+    (let ((buffer-file-name (org-element-property :path parse-tree)))
+      (apply #'nconc
+             (org-element-map
+                 parse-tree
+                 'headline
+               #'org-glossary--entries-within-heading
+               nil nil
+               (and org-glossary-toplevel-only 'headline)))))
+   (org-element-use-cache ; Cache enabled, no parse tree
     (apply #'nconc
-           (org-element-map
-               parse-tree
-               'headline
-             (lambda (heading)
-               (and (member (org-element-property :raw-value heading)
-                            org-glossary--heading-names)
-                    (apply #'nconc
-                           (org-element-map
-                               (org-element-contents heading)
-                               'plain-list
-                             (lambda (lst)
-                               (org-element-map
-                                   (org-element-contents lst)
-                                   'item
-                                 #'org-glossary--entry-from-item
-                                 nil nil 'item))))))
-             nil nil
-             (and org-glossary-toplevel-only 'headline)))))
+           (org-element-cache-map
+            #'org-glossary--entries-within-heading
+            :granularity 'headline)))
+   (t (org-glossary--extract-terms (org-element-parse-buffer)))))
+
+(defun org-glossary--entries-within-heading (heading)
+  "Extract all glossary entries within HEADING."
+  (and (member (org-element-property :raw-value heading)
+               org-glossary--heading-names)
+       (or (not org-glossary-toplevel-only)
+           (eq (org-element-property :level heading) 1))
+       (let ((heading
+              (if (org-element-contents heading) heading
+                (org-with-wide-buffer
+                 (narrow-to-region
+                  (org-element-property :begin heading)
+                  (org-element-property :end heading))
+                 (org-element-parse-buffer)))))
+         (apply #'nconc
+                (org-element-map heading 'plain-list
+                  (lambda (lst)
+                    (org-element-map
+                        (org-element-contents lst)
+                        'item
+                      #'org-glossary--entry-from-item
+                      nil nil 'item)))))))
 
 (defun org-glossary--entry-from-item (item)
   "Destructively build a glossary entry from a ITEM."
@@ -1509,28 +1538,22 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
   (and (not (string= a b))
        (not (string-collate-lessp a b nil t))))
 
-(defun org-glossary--strip-headings (&optional data _backend info remove-from-buffer)
+(defun org-glossary--strip-headings (&optional remove-from-buffer)
   "Remove glossary headlines."
-  (let ((data (or data (org-element-parse-buffer)))
-        regions-to-delete)
-    (org-element-map
-        data
-        'headline
-      (lambda (heading)
-        (when (org-glossary--definition-heading-p heading)
-          (if remove-from-buffer
-              (push (list (org-element-property :begin heading)
-                          (org-element-property :end heading))
-                    regions-to-delete)
-            (org-element-extract-element heading))))
-      info
-      nil
-      (and org-glossary-toplevel-only 'headline))
-    (mapc
-     (lambda (region)
-       (apply #'delete-region region))
-     regions-to-delete)
-    data))
+  (let (regions-to-delete)
+    (org-element-cache-map
+     (lambda (heading)
+       (when (org-glossary--definition-heading-p heading)
+         (push (list (org-element-property :begin heading)
+                     (org-element-property :end heading))
+               regions-to-delete)))
+     :granularity 'headline)
+    (when remove-from-buffer
+      (mapc
+       (lambda (region)
+         (apply #'delete-region region))
+       regions-to-delete))
+    regions-to-delete))
 
 (defun org-glossary--extract-uses-in-region (terms begin end &optional types mark-extracted)
   "Extract uses of TERMS that occur between BEGIN and END.
@@ -1777,7 +1800,7 @@ This should only be run as an export hook."
         org-glossary--current-export-spec
         (org-glossary--get-export-specs backend)
         org-glossary--key-nonce-indices nil)
-  (org-glossary--strip-headings nil nil nil t)
+  (org-glossary--strip-headings t)
   (let ((index-terms-mrx (org-glossary--mrx-construct-from-terms
                           (cl-remove-if
                            (lambda (trm)
@@ -2089,10 +2112,18 @@ location."
     (org-babel-balanced-split
      (or (mapconcat
           #'identity
-          (org-element-map (or parse-tree (org-element-parse-buffer)) 'keyword
-            (lambda (keyword)
-              (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
-                   (org-element-property :value keyword))))
+          (if (or parse-tree (not org-element-use-cache))
+              (org-element-map (or parse-tree (org-element-parse-buffer))
+                  'keyword
+                (lambda (keyword)
+                  (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
+                       (org-element-property :value keyword))))
+            (org-element-cache-map
+             (lambda (keyword)
+               (and (equal "GLOSSARY_SOURCES" (org-element-property :key keyword))
+                    (org-element-property :value keyword)))
+             :granularity 'element
+             :restrict-elements 'keyword))
           " ")
          "")
      ?\s))))
