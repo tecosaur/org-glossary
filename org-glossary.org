@@ -453,7 +453,7 @@ Each property refers to a particular situation, and the value is either:
 
 The ~:use~, ~:first-use~, ~:definition~, and ~:backref~ properties are applied during
 backend-specific content transcoding (i.e. using the syntax of the backend's
-output), while ~:definition-structure~, ~:category-heading~, and ~:letter-seperator~
+output), while ~:definition-structure~, ~:category-heading~, and ~:letter-separator~
 are applied to a copy of the Org document just prior to the backend-specific
 export process (and so should be written using Org syntax).
 
@@ -562,7 +562,7 @@ instead make use of ~setcdr~ or ~plist-put~ like so:
 #+begin_example
 (org-glossary-set-export-spec 'latex t
   :backref "gls-%k-use-%r"
-  :backref-seperator ","
+  :backref-separator ","
   :definition-structure "*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum%n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n")
 #+end_example
 

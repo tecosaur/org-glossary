@@ -623,7 +623,7 @@ generated the replacement content string.
 
 The @code{:use}@comma{} @code{:first-use}@comma{} @code{:definition}@comma{} and @code{:backref} properties are applied during
 backend-specific content transcoding (i.e. using the syntax of the backend's
-output)@comma{} while @code{:definition-structure}@comma{} @code{:category-heading}@comma{} and @code{:letter-seperator}
+output)@comma{} while @code{:definition-structure}@comma{} @code{:category-heading}@comma{} and @code{:letter-separator}
 are applied to a copy of the Org document just prior to the backend-specific
 export process (and so should be written using Org syntax).
 
@@ -752,7 +752,7 @@ instead make use of @code{setcdr} or @code{plist-put} like so:
 @example
 (org-glossary-set-export-spec 'latex t
   :backref "gls-%k-use-%r"
-  :backref-seperator "@comma{}"
+  :backref-separator "@comma{}"
   :definition-structure "*%d*\\emsp@{@}%v\\ensp@{@}@@@@latex:\\ifnum%n>0 \\labelcpageref@{@@@@%b@@@@latex:@}\\fi@@@@\n")
 @end example
 

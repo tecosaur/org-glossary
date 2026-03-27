@@ -166,7 +166,7 @@ at least three terms that start with the same letter."
           :first-use "%u"
           :definition "%t"
           :backref "%r"
-          :backref-seperator ", "
+          :backref-separator ", "
           :heading ""
           :category-heading "* %c\n"
           :letter-heading "*%L*\n"
@@ -257,7 +257,7 @@ command like so is recommended:
 
   (org-glossary-set-export-spec \\='latex t
     :backref \"gls-%k-use-%r\"
-    :backref-seperator \",\"
+    :backref-separator \",\"
     :definition-structure
     \"*%d*\\emsp{}%v\\ensp{}@@latex:\\ifnum%n>0 \\labelcpageref{@@%b@@latex:}\\fi@@\n\")
 
@@ -665,13 +665,13 @@ side-effect when it is provided."
                           (org-element-contents item))))))
          (keys-terms (split-string term-str "[ \t]*=[ \t]*"))
          (term-and-plural (split-string (car (last keys-terms)) "[ \t]*,[ \t]*"))
-         (term (org-glossary--downcase-if-sentance-case (car term-and-plural)))
-         (plural (org-glossary--downcase-if-sentance-case
+         (term (org-glossary--downcase-if-sentence-case (car term-and-plural)))
+         (plural (org-glossary--downcase-if-sentence-case
                   (or (cadr term-and-plural)
                       (funcall org-glossary-plural-function term))))
          (key-and-plural (split-string (car keys-terms) "[ \t]*,[ \t]*"))
-         (key (org-glossary--downcase-if-sentance-case (car key-and-plural)))
-         (key-plural (org-glossary--downcase-if-sentance-case
+         (key (org-glossary--downcase-if-sentence-case (car key-and-plural)))
+         (key-plural (org-glossary--downcase-if-sentence-case
                       (or (cadr key-and-plural)
                           (funcall org-glossary-plural-function key))))
          (type-category (org-glossary--entry-type-category
@@ -727,7 +727,7 @@ side-effect when it is provided."
       (puthash (plist-get term-entry :key) term-entry key-term-map))
     (dolist (term-entry terms)
       (when-let ((value (plist-get term-entry :value))
-                 (value-str (org-glossary--downcase-if-sentance-case
+                 (value-str (org-glossary--downcase-if-sentence-case
                              (string-trim (org-element-interpret-data value))))
                  (associated-term (gethash value-str key-term-map)))
         (plist-put term-entry :alias-for associated-term)
@@ -1248,7 +1248,7 @@ optional arguments:
             parameters))
     (when (string-match-p "%t" template)
       (push (cons ?t (funcall (if (or capitalized-p (eq form :definition-structure))
-                                  #'org-glossary--sentance-case
+                                  #'org-glossary--sentence-case
                                 #'identity)
                               (plist-get term-entry
                                          (if plural-p :term-plural :term))))
@@ -1287,7 +1287,7 @@ optional arguments:
                            (setq plural-p nil)
                            (plist-get canonical-term :term-plural))
                           (t (plist-get canonical-term :term)))))
-                    (funcall (if capitalized-p #'org-glossary--sentance-case
+                    (funcall (if capitalized-p #'org-glossary--sentence-case
                                #'identity)
                              (if plural-p
                                  (let ((components (split-string value-str)))
@@ -1323,11 +1323,11 @@ exported in place of the paragraph itself."
                     info))
                  (plist-get info :exported-data)))))
 
-(defun org-glossary--sentance-case (s)
+(defun org-glossary--sentence-case (s)
   "Return a sentence-cased version of S."
   (concat (string (upcase (aref s 0))) (substring s 1)))
 
-(defun org-glossary--downcase-if-sentance-case (str)
+(defun org-glossary--downcase-if-sentence-case (str)
   "If STR is in sentence case, return a `downcase'd version."
   (let (case-fold-search)
     (if (or (string-match-p "^[[:upper:]][^[:space:]][^[:upper:]]+$" str)
@@ -1472,7 +1472,7 @@ Unless duplicate-mentions is non-nil, terms already defined will be excluded."
                   (plist-get term-entry :uses)
                   #'< :key #'car)
                  (org-glossary--export-instance
-                  backend nil term-entry :backref-seperator))))))))
+                  backend nil term-entry :backref-separator))))))))
 
 (defun org-glossary--group-terms (terms predicate &optional include)
   "Group TERMS according to PREDICATE, and optionally only INCLUDE certain groups."
@@ -1662,7 +1662,7 @@ the :consume parameter extracted from KEYWORD."
        (and (stringp description)
             `((?t . ,(if (string= description org-glossary--index-stub-description)
                          "" description)))))
-    (funcall (if capitalized-p #'org-glossary--sentance-case #'identity)
+    (funcall (if capitalized-p #'org-glossary--sentence-case #'identity)
              (funcall (if plural-p org-glossary-plural-function #'identity)
                       trm))))
 
@@ -1930,7 +1930,7 @@ This should only be run as an export hook."
                (funcall
                 (if (string-match-p "^[[:upper:]][^[:upper:]]+$"
                                     (match-string 0))
-                    #'org-glossary--sentance-case #'identity)
+                    #'org-glossary--sentence-case #'identity)
                 (string-trim
                  (substring-no-properties
                   (org-element-interpret-data
