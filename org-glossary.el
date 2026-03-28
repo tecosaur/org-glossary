@@ -807,7 +807,7 @@ When NO-NUMBER is non-nil, all links created or modified shall not include
 a reference number.
 When KEEP-UNUSED is non-nil, unused terms will be included in the result."
   (interactive (list org-glossary--terms nil t))
-  (let ((terms-mrx (org-glossary--mrx-construct-from-terms terms))
+  (let ((term-matcher (org-glossary--build-term-matcher terms))
         (search-spaces-regexp "[ \t\n][ \t]*")
         (start-time (float-time))
         (last-redisplay (float-time))
@@ -822,7 +822,7 @@ When KEEP-UNUSED is non-nil, unused terms will be included in the result."
       (org-glossary--identify-alias-terms terms)
       (save-excursion
         (goto-char (point-min))
-        (while (org-glossary--mrx-search-forward terms-mrx)
+        (while (org-glossary--term-search-forward term-matcher)
           (when (> (- (float-time) last-redisplay) 0.4)
             (let (message-log-max)
               (message "Scanning for term usage: (%s%%)"
@@ -890,83 +890,123 @@ Behaviour is set according to NO-MODIFY."
       (plist-put term-entry :uses nil))
     terms))
 
-(defvar org-glossary--mrx-last-tag nil
-  "The tag of the last multi-rx matched by `org-glossary--multi-rx'.")
+(defvar-local org-glossary--term-match-tag nil
+  "The tag of the last term matched, either `singular' or `plural'.")
 
-(defun org-glossary--mrx-search-forward (tagged-patterns &optional limit case-insensitive)
-  "Find the closest matching pattern in TAGGED-PATTERNS before LIMIT.
-Each entry in the list TAGGED-PATTERNS should be of the form:
-  (TAG . STRINGS)
+(defun org-glossary--build-term-matcher (terms)
+  "Construct a term matcher trie from TERMS.
+The result is a four-level vector trie keyed on the first bytes of each
+term string (first byte case-folded via logior #x20, all bytes masked to
+8 bits).  Each leaf is a cons (SINGULAR-RX . PLURAL-RX) of regexps.
+Slot 0 at each level stores leaves for terms that terminate at that
+depth (i.e. terms shorter than four characters)."
+  (let ((singular-groups (make-hash-table :test #'eql))
+        (plural-groups (make-hash-table :test #'eql)))
+    ;; Collect term strings (with capitalised variants) by prefix key.
+    (dolist (trm terms)
+      (dolist (key-tag `((:key . ,singular-groups) (:key-plural . ,plural-groups)))
+        (when-let ((term-str (plist-get trm (car key-tag))))
+          (dolist (str (org-glossary--term-case-variants term-str))
+            (let ((prefix-key (org-glossary--term-prefix-key str)))
+              (puthash prefix-key
+                       (cons str (gethash prefix-key (cdr key-tag)))
+                       (cdr key-tag)))))))
+    ;; Build the four-level trie.
+    (let ((trie (make-vector 256 nil)))
+      (maphash
+       (lambda (prefix-key strs)
+         (let* ((c1 (logand (ash prefix-key -24) #xff))
+                (c2 (logand (ash prefix-key -16) #xff))
+                (c3 (logand (ash prefix-key -8) #xff))
+                (c4 (logand prefix-key #xff))
+                (rx (org-glossary--term-regexp strs))
+                (level1 (or (aref trie c1) (aset trie c1 (make-vector 256 nil))))
+                (level2 (or (aref level1 c2) (aset level1 c2 (make-vector 256 nil))))
+                (level3 (or (aref level2 c3) (aset level2 c3 (make-vector 256 nil))))
+                (leaf (or (aref level3 c4) (cons nil nil))))
+           (setcar leaf rx)
+           (aset level3 c4 leaf)))
+       singular-groups)
+      (maphash
+       (lambda (prefix-key strs)
+         (let* ((c1 (logand (ash prefix-key -24) #xff))
+                (c2 (logand (ash prefix-key -16) #xff))
+                (c3 (logand (ash prefix-key -8) #xff))
+                (c4 (logand prefix-key #xff))
+                (rx (org-glossary--term-regexp strs))
+                (level1 (or (aref trie c1) (aset trie c1 (make-vector 256 nil))))
+                (level2 (or (aref level1 c2) (aset level1 c2 (make-vector 256 nil))))
+                (level3 (or (aref level2 c3) (aset level2 c3 (make-vector 256 nil))))
+                (leaf (or (aref level3 c4) (cons nil nil))))
+           (setcdr leaf rx)
+           (aset level3 c4 leaf)))
+       plural-groups)
+      trie)))
 
-In the case of two equally close matches from TAGGED-PATTERNS,
-the longest match will be used.
+(defun org-glossary--term-case-variants (term-str)
+  "Return TERM-STR and its capitalised variant, if applicable."
+  (let ((c1 (aref term-str 0)))
+    (if (eq c1 (upcase c1))
+        (list term-str)
+      (list term-str (concat (string (upcase c1))
+                             (substring term-str 1))))))
 
-`case-fold-search' is locally bound to CASE-INSENSITIVE.
+(defun org-glossary--term-prefix-key (str)
+  "Compute the trie key for STR.
+The key packs up to four bytes into an integer: the first byte
+case-folded via logior #x20, all bytes masked to 8 bits.  Terms shorter
+than four characters use 0 for the missing bytes (slot 0 serves as
+the termination marker at each trie level)."
+  (let ((len (length str)))
+    (logior (ash (logand (logior (aref str 0) #x20) #xff) 24)
+            (ash (logand (if (> len 1) (aref str 1) 0) #xff) 16)
+            (ash (logand (if (> len 2) (aref str 2) 0) #xff) 8)
+            (logand (if (> len 3) (aref str 3) 0) #xff))))
 
-This is necessitated by problems when trying to apply
-`regexp-opt' to many items, which can trigger:
-  Lisp error: (invalid-regexp \"Regular expression too big\")"
-  (let ((match-start most-positive-fixnum)
-        (match-stop -1)
-        (case-fold-search case-insensitive)
-        the-match tag)
-    (dolist (t-pat tagged-patterns)
-      (save-excursion
-        (when (and (re-search-forward (cdr t-pat) limit t)
-                   (or (< (match-beginning 0) match-start)
-                       (and (= (match-beginning 0) match-start)
-                            (> (match-end 0) match-stop))))
-          (setq the-match (match-data)
-                match-start (match-beginning 0)
-                match-stop (match-end 0)
-                tag (car t-pat)))))
-    (set-match-data the-match)
-    (and the-match
-         (setq org-glossary--mrx-last-tag tag)
-         (goto-char match-stop))))
+(defun org-glossary--term-regexp (strs)
+  "Build a term-matching regexp from the list of strings STRS."
+  (concat "\\<" (regexp-opt (delete-dups strs) t) "\\(?:\\>\\|'\\)"))
 
-(defvar org-glossary--mrx-max-bin-size 800
-  "The maximum number of strings that should be combined into a single regexp.
-Larger is better, however typically \\='invalid-regexp \"Regular
-expression too big\"' is seen with around 1000+ terms.")
+(defun org-glossary--term-search-forward (trie &optional limit)
+  "Find the next term match in TRIE, moving point past it.
+Searches forward from point up to LIMIT, checking each word against
+the four-level prefix trie.  On match, sets match data (with the
+term text in group 1) and `org-glossary--term-match-tag', then returns
+non-nil."
+  (let ((found nil))
+    (while (and (not found) (not (eobp))
+                (if limit (< (point) limit) t))
+      ;; Walk the four-level trie using the first bytes at point.
+      (if (when-let ((level1 (aref trie (logand (logior (char-after) #x20) #xff)))
+                     (level2 (aref level1 (logand (or (char-after (1+ (point))) 0) #xff))))
+            (let ((level3 (aref level2 (logand (or (char-after (+ (point) 2)) 0) #xff))))
+              (or (and level3
+                       (or (org-glossary--term-try-match
+                            (aref level3 (logand (or (char-after (+ (point) 3)) 0) #xff)))
+                           ;; 3-char terms (slot 0 at level 3).
+                           (org-glossary--term-try-match (aref level3 0))))
+                  ;; 2-char terms (slot 0→0 at levels 2→3).
+                  (let ((short-level3 (aref level2 0)))
+                    (and short-level3
+                         (org-glossary--term-try-match (aref short-level3 0)))))))
+          (setq found t)
+        (forward-word 1)
+        (skip-syntax-forward "^w")))
+    found))
 
-(defun org-glossary--mrx-construct (&rest tagged-strings)
-  (let (bins accumulated (n 0))
-    (dolist (tag-strs tagged-strings)
-      (dolist (str (delete-dups (sort (copy-sequence (cdr tag-strs)) #'string<)))
-        (if (< n org-glossary--mrx-max-bin-size)
-            (progn (push str accumulated)
-                   (setq n (1+ n)))
-          (push (cons (car tag-strs)
-                      (concat "\\<" (regexp-opt accumulated t) "\\(?:\\>\\|'\\)"))
-                bins)
-          (setq accumulated (list str)
-                n 1)))
-      (when accumulated
-        (push (cons (car tag-strs)
-                    (concat "\\<" (regexp-opt accumulated t) "\\(?:\\>\\|'\\)"))
-              bins)
-        (setq accumulated nil
-              n 0)))
-    bins))
-
-(defun org-glossary--mrx-construct-from-terms (terms)
-  "Construct a multi-rx from TERMS."
-  (let ((term-collect
-         (lambda (terms key)
-           (apply #'nconc
-                  (mapcar
-                   (lambda (trm)
-                     (when-let ((term-str (plist-get trm key))
-                                (term-letter1 (aref term-str 0)))
-                       (if (eq term-letter1 (upcase term-letter1))
-                           (list term-str)
-                         (list term-str (concat (string (upcase term-letter1))
-                                                (substring term-str 1))))))
-                   terms)))))
-    (org-glossary--mrx-construct
-     (cons 'singular (funcall term-collect terms :key))
-     (cons 'plural (funcall term-collect terms :key-plural)))))
+(defun org-glossary--term-try-match (leaf)
+  "Try to match the term regexps in LEAF at point.
+LEAF is a cons (SINGULAR-RX . PLURAL-RX).  If a match is found,
+sets `org-glossary--term-match-tag' and moves point past the match."
+  (cond
+   ((and (car leaf) (looking-at (car leaf)))
+    (setq org-glossary--term-match-tag 'singular)
+    (goto-char (match-end 0))
+    (skip-syntax-forward "^w"))
+   ((and (cdr leaf) (looking-at (cdr leaf)))
+    (setq org-glossary--term-match-tag 'plural)
+    (goto-char (match-end 0))
+    (skip-syntax-forward "^w"))))
 
 (defun org-glossary--within-definition-p (datum)
   "Whether DATUM exists within a term definition subtree."
@@ -1066,7 +1106,7 @@ When NO-NUMBER is non-nil, no reference number shall be inserted."
          (replace-regexp-in-string
           "[ \n\t]+" " "
           (substring-no-properties (match-string 1))))
-        (plural-p (eq org-glossary--mrx-last-tag 'plural))
+        (plural-p (eq org-glossary--term-match-tag 'plural))
         (case-fold-search nil)
         capitalized-p term-entry)
     (setq term-entry
@@ -1681,19 +1721,19 @@ the :consume parameter extracted from KEYWORD."
                          :help-echo #'org-glossary--help-echo-from-textprop)
 
 (defun org-glossary--link-export-gls (index-term description backend info)
-  "Export a gls link to term index-term with BACKEND."
+  "Export a gls link to INDEX-TERM with BACKEND according to DESCRIPTION and INFO."
   (org-glossary--link-export backend info index-term description nil nil))
 
 (defun org-glossary--link-export-glspl (index-term description backend info)
-  "Export a glspl link to term index-term with BACKEND."
+  "Export a glspl link to INDEX-TERM with BACKEND according to DESCRIPTION and INFO."
   (org-glossary--link-export backend info index-term description t nil))
 
 (defun org-glossary--link-export-Gls (index-term description backend info)
-  "Export a Gls link to term index-term with BACKEND."
+  "Export a Gls link to INDEX-TERM with BACKEND according to DESCRIPTION and INFO."
   (org-glossary--link-export backend info index-term description nil t))
 
 (defun org-glossary--link-export-Glspl (index-term description backend info)
-  "Export a Glspl link to term index-term with BACKEND."
+  "Export a Glspl link to INDEX-TERM with BACKEND according to DESCRIPTION and INFO."
   (org-glossary--link-export backend info index-term description t t))
 
 (defconst org-glossary--index-stub-description
@@ -1830,14 +1870,14 @@ This should only be run as an export hook."
         (org-glossary--get-export-specs backend)
         org-glossary--key-nonce-indices nil)
   (org-glossary--strip-headings t)
-  (let ((index-terms-mrx (org-glossary--mrx-construct-from-terms
+  (let ((index-term-matcher (org-glossary--build-term-matcher
                           (cl-remove-if
                            (lambda (trm)
                              (not (eq (plist-get trm :type) 'index)))
                            org-glossary--terms))))
     (save-excursion
       (goto-char (point-min))
-      (while (org-glossary--mrx-search-forward index-terms-mrx)
+      (while (org-glossary--term-search-forward index-term-matcher)
         (when (save-match-data
                 (looking-back "^[ \t]*#\\+[cfkptv]?index:[ \t]*"
                               (line-beginning-position)))
@@ -1865,7 +1905,7 @@ This should only be run as an export hook."
 
 ;;; Fontification
 
-(defvar-local org-glossary--term-mrx nil
+(defvar-local org-glossary--term-matcher nil
   "A multi-rx matching all known forms of terms.")
 
 (defvar-local org-glossary--font-lock-keywords
@@ -1915,8 +1955,8 @@ This should only be run as an export hook."
   (let ((search-spaces-regexp (and font-lock-multiline "[ \t\n][ \t]*"))
         match-p exit element-at-point element-context)
     (while (and (not exit) (if limit (< (point) limit) t))
-      (setq exit (null (org-glossary--mrx-search-forward
-                        org-glossary--term-mrx limit)))
+      (setq exit (null (org-glossary--term-search-forward
+                        org-glossary--term-matcher limit)))
       (save-match-data
         (setq element-at-point (org-element-at-point)
               element-context (org-element-context element-at-point))
@@ -2104,8 +2144,8 @@ This should only be run as an export hook."
                                org-glossary--terms)))
     (setq org-glossary--extra-term-sources (org-glossary--get-extra-term-sources)
           org-glossary--terms (org-glossary--get-terms-cached)
-          org-glossary--term-mrx
-          (org-glossary--mrx-construct-from-terms org-glossary--terms)
+          org-glossary--term-matcher
+          (org-glossary--build-term-matcher org-glossary--terms)
           org-glossary--quicklookup-cache (make-hash-table :test #'equal)
           org-glossary--help-echo-cache (make-hash-table :test #'equal)
           org-glossary--fontified-snippet-cache (make-hash-table :test #'equal))
