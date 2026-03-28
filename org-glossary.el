@@ -974,8 +974,9 @@ the four-level prefix trie.  On match, sets match data (with the
 term text in group 1) and `org-glossary--term-match-tag', then returns
 non-nil."
   (let ((found nil))
+    (skip-syntax-forward "^w")
     (while (and (not found) (not (eobp))
-                (if limit (< (point) limit) t))
+                (if limit (<= (point) limit) t))
       ;; Walk the four-level trie using the first bytes at point.
       (if (when-let ((level1 (aref trie (logand (logior (char-after) #x20) #xff)))
                      (level2 (aref level1 (logand (or (char-after (1+ (point))) 0) #xff))))
@@ -1927,6 +1928,8 @@ This should only be run as an export hook."
                 t)))))
   per-term-p)
 
+(defvar org-glossary--substitution-overlays) ; For the byte-compiler.
+
 (define-minor-mode org-glossary-mode
   "Glossary term fontification, and enhanced interaction."
   :global nil
@@ -1944,22 +1947,49 @@ This should only be run as an export hook."
         (add-hook 'after-save-hook
                   'org-glossary--detect-updates-and-propagate nil t)
         (add-hook 'kill-buffer-hook
-                  'org-glossary--deregister-buffer-dependencies nil t))
+                  'org-glossary--deregister-buffer-dependencies nil t)
+        (add-hook 'font-lock-extend-region-functions
+                  #'org-glossary--extend-font-lock-region nil t))
     (org-glossary--deregister-buffer-dependencies)
     (remove-hook 'kill-buffer-hook
-                 'org-glossary--deregister-buffer-dependencies t))
+                 'org-glossary--deregister-buffer-dependencies t)
+    (remove-hook 'font-lock-extend-region-functions
+                 #'org-glossary--extend-font-lock-region t))
   org-glossary-mode)
+
+(eval-when-compile ; For the byte-compiler
+  (defvar font-lock-beg)
+  (defvar font-lock-end))
+
+(defun org-glossary--extend-font-lock-region ()
+  "Extend the font-lock region to cover complete term matches.
+Moves `font-lock-beg' to the start of the current line (for multi-word
+terms starting before the edit point) and back one more line if it is
+non-blank (for terms spanning a line break)."
+  (let ((orig font-lock-beg))
+    (goto-char font-lock-beg)
+    (unless (bobp)
+      (let ((p (point)))
+        (forward-line -1)
+        (when (save-excursion
+                (skip-chars-forward " \t")
+                (eolp))
+          (goto-char p))))
+    (setq font-lock-beg (point))
+    (/= font-lock-beg orig)))
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurrence of a term reference, for fontification."
-  (let ((search-spaces-regexp (and font-lock-multiline "[ \t\n][ \t]*"))
+  (let ((search-spaces-regexp "[ \t\n][ \t]*")
         match-p exit element-at-point element-context)
-    (while (and (not exit) (if limit (< (point) limit) t))
+    (while (and (not exit) (if limit (<= (point) limit) t))
       (setq exit (null (org-glossary--term-search-forward
                         org-glossary--term-matcher limit)))
       (save-match-data
-        (setq element-at-point (org-element-at-point)
-              element-context (org-element-context element-at-point))
+        (save-excursion
+          (goto-char (match-beginning 0))
+          (setq element-at-point (org-element-at-point)
+                element-context (org-element-context element-at-point)))
         (when (and (not exit)
                    (not (and (not org-glossary-autodetect-in-headings)
                              (eq 'headline (org-element-type element-at-point))))
@@ -1971,13 +2001,15 @@ This should only be run as an export hook."
                        (>= (point) (org-element-property :post-affiliated element-context))
                        (org-glossary--at-valid-affiliated-keyword-p))
                    (not (org-glossary--within-definition-p element-context)))
-          ;; HACK For some strange reason, if I don't move point forwards
-          ;; here, this function will end up being called again and again
-          ;; ad-infinitum.  Strangely, while (forward-char 1) works
-          ;; (goto-char (match-end 0)) does not.  What on earth is happening?
-          ;; Please send help.
-          (forward-char 1)
-          (setq exit t match-p t))))
+          (setq exit t match-p t)))
+      ;; Mark multiline matches so font-lock re-fontifies the whole
+      ;; region when the first line is edited.
+      (when (and match-p
+                 (< (save-excursion (goto-char (match-beginning 0))
+                                    (line-end-position))
+                    (match-end 0)))
+        (put-text-property (match-beginning 0) (match-end 0)
+                           'font-lock-multiline t)))
     match-p))
 
 (defvar-local org-glossary--fontified-snippet-cache
