@@ -1966,21 +1966,25 @@ This should only be run as an export hook."
   (defvar font-lock-end))
 
 (defun org-glossary--extend-font-lock-region ()
-  "Extend the font-lock region to cover complete term matches.
-Moves `font-lock-beg' to the start of the current line (for multi-word
-terms starting before the edit point) and back one more line if it is
-non-blank (for terms spanning a line break)."
-  (let ((orig font-lock-beg))
+  "Extend the font-lock region to the start of the current paragraph.
+This ensures multi-word term matches spanning a line wrap within a
+paragraph are fully covered.  Terminates cleanly at blank lines and
+buffer start, and is a no-op if `font-lock-beg' is already at the
+paragraph start."
+  (save-excursion
     (goto-char font-lock-beg)
-    (unless (bobp)
-      (let ((p (point)))
+    (let ((continue (not (bobp))))
+      (while continue
         (forward-line -1)
+        (setq continue (not (bobp)))
         (when (save-excursion
                 (skip-chars-forward " \t")
                 (eolp))
-          (goto-char p))))
-    (setq font-lock-beg (point))
-    (/= font-lock-beg orig)))
+          (forward-line 1)
+          (setq continue nil))))
+    (and (< (point) font-lock-beg)
+         (setq font-lock-beg (point))
+         t)))
 
 (defun org-glossary--fontify-find-next (&optional limit)
   "Find any next occurrence of a term reference, for fontification."
