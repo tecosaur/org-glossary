@@ -683,13 +683,14 @@ side-effect when it is provided."
                   (org-element-property :end heading))
                  (org-element-parse-buffer)))))
          (apply #'nconc
-                (org-element-map heading 'plain-list
-                  (lambda (lst)
-                    (org-element-map
-                        (org-element-contents lst)
-                        'item
-                      #'org-glossary--entry-from-item
-                      nil nil 'item)))))))
+                (delq nil
+                      (org-element-map heading 'plain-list
+                        (lambda (lst)
+                          (org-element-map
+                              (org-element-contents lst)
+                              'item
+                            #'org-glossary--entry-from-item
+                            nil nil 'item))))))))
 
 (defun org-glossary--entry-from-item (item)
   "Destructively build a glossary entry from a ITEM."
@@ -714,21 +715,24 @@ side-effect when it is provided."
          (item-contents (and (org-element-property :tag item)
                              (org-element-contents item)))
          (value (mapcar #'org-element-extract-element item-contents)))
-    (list :key key
-          :key-plural (and (not (string-empty-p key-plural))
-                           (not (string= key key-plural))
-                           key-plural)
-          :key-nonce (org-glossary--key-nonce key)
-          :term term
-          :term-plural plural
-          :alias-for nil
-          :type (car type-category)
-          :category (cdr type-category)
-          :value value
-          :definition-file (or (buffer-file-name) (current-buffer))
-          :definition-pos (+ (org-element-property :begin item) 2)
-          :extracted nil
-          :uses nil)))
+    (when (string-empty-p key)
+      (setq key key-plural key-plural ""))
+    (and (not (string-empty-p key))
+         (list :key key
+               :key-plural (and (not (string-empty-p key-plural))
+                                (not (string= key key-plural))
+                                key-plural)
+               :key-nonce (org-glossary--key-nonce key)
+               :term term
+               :term-plural plural
+               :alias-for nil
+               :type (car type-category)
+               :category (cdr type-category)
+               :value value
+               :definition-file (or (buffer-file-name) (current-buffer))
+               :definition-pos (+ (org-element-property :begin item) 2)
+               :extracted nil
+               :uses nil))))
 
 (defvar org-glossary--category-heading-tag) ; For the byte-compiler.
 
