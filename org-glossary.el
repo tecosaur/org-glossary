@@ -692,24 +692,65 @@ side-effect when it is provided."
                             #'org-glossary--entry-from-item
                             nil nil 'item))))))))
 
+(defun org-glossary--plaintext-split-once (data separator)
+  "Split org DATA at the first SEPARATOR match in a plain-text segment.
+Returns a cons (BEFORE . AFTER), where either side is a (possibly
+empty) list of strings and Org elements.  If SEPARATOR is not found,
+BEFORE is nil and AFTER is DATA."
+  (let ((remaining data)
+        before found)
+    (while (and remaining (not found))
+      (let ((head (pop remaining)))
+        (if (and (stringp head) (string-match separator head))
+            (let ((pre (substring head 0 (match-beginning 0)))
+                  (post (substring head (match-end 0))))
+              (unless (string-empty-p pre) (push pre before))
+              (setq found (if (string-empty-p post) remaining (cons post remaining))))
+          (push head before))))
+    (if found
+        (cons (nreverse before) found)
+      (cons nil data))))
+
+(defun org-glossary--data-to-string (data)
+  "Convert org DATA to a plain string."
+  (string-trim
+   (substring-no-properties
+    (org-element-interpret-data data))))
+
 (defun org-glossary--entry-from-item (item)
   "Destructively build a glossary entry from a ITEM."
-  (let* ((term-str (string-trim
-                    (substring-no-properties
-                     (org-element-interpret-data
-                      (or (org-element-property :tag item)
-                          (org-element-contents item))))))
-         (keys-terms (split-string term-str "[ \t]*=[ \t]*"))
-         (term-and-plural (split-string (car (last keys-terms)) "[ \t]*,[ \t]*"))
-         (term (org-glossary--downcase-if-sentence-case (car term-and-plural)))
+  (let* ((tag-data (or (org-element-property :tag item)
+                       (org-element-contents item)))
+         (key-split (org-glossary--plaintext-split-once tag-data "[ \t]*=[ \t]*"))
+         (has-key-part (and (car key-split) t))
+         (key-data-pair (org-glossary--plaintext-split-once
+                         (or (car key-split) (cdr key-split))
+                         "[ \t]*,[ \t]*"))
+         (term-data-pair (org-glossary--plaintext-split-once
+                          (cdr key-split) "[ \t]*,[ \t]*"))
+         (term-data (or (car term-data-pair) (cdr term-data-pair)))
+         (term-plural-data (and (car term-data-pair) (cdr term-data-pair)))
+         (key-data (if has-key-part
+                       (or (car key-data-pair) (cdr key-data-pair))
+                     term-data))
+         (key-plural-data (cond
+                           ((and has-key-part (car key-data-pair))
+                            (cdr key-data-pair))
+                           (has-key-part nil)
+                           (t term-plural-data)))
+         (term (org-glossary--downcase-if-sentence-case
+                (org-glossary--data-to-string term-data)))
          (plural (org-glossary--downcase-if-sentence-case
-                  (or (cadr term-and-plural)
-                      (funcall org-glossary-plural-function term))))
-         (key-and-plural (split-string (car keys-terms) "[ \t]*,[ \t]*"))
-         (key (org-glossary--downcase-if-sentence-case (car key-and-plural)))
+                  (if term-plural-data
+                      (org-glossary--data-to-string term-plural-data)
+                    (funcall org-glossary-plural-function term))))
+         (key (org-glossary--downcase-if-sentence-case
+               (org-glossary--data-to-string key-data)))
          (key-plural (org-glossary--downcase-if-sentence-case
-                      (or (cadr key-and-plural)
-                          (funcall org-glossary-plural-function key))))
+                      (cond
+                       (key-plural-data (org-glossary--data-to-string key-plural-data))
+                       (has-key-part (funcall org-glossary-plural-function key))
+                       (t plural))))
          (type-category (org-glossary--entry-type-category
                          (org-element-lineage item '(headline))))
          (item-contents (and (org-element-property :tag item)
@@ -724,7 +765,10 @@ side-effect when it is provided."
                                 key-plural)
                :key-nonce (org-glossary--key-nonce key)
                :term term
+               :term-data (and term-data (org-element-copy term-data t))
                :term-plural plural
+               :term-plural-data (and term-plural-data
+                                      (org-element-copy term-plural-data t))
                :alias-for nil
                :type (car type-category)
                :category (cdr type-category)
@@ -1339,11 +1383,15 @@ optional arguments:
             parameters))
     (when (and (not (assq ?t extra-parameters))
                (string-match-p "%t" template))
-      (push (cons ?t (funcall (if (or capitalized-p (eq form :definition-structure))
-                                  #'org-glossary--sentence-case
-                                #'identity)
-                              (plist-get term-entry
-                                         (if plural-p :term-plural :term))))
+      (push (cons ?t (org-glossary--export-term-str
+                      (funcall (if (or capitalized-p (eq form :definition-structure))
+                                   #'org-glossary--sentence-case
+                                 #'identity)
+                               (plist-get term-entry
+                                          (if plural-p :term-plural :term)))
+                      (plist-get term-entry
+                                 (if plural-p :term-plural-data :term-data))
+                      info))
             parameters))
     (when (and (not (assq ?l extra-parameters))
                (string-match-p "%l" template))
@@ -1384,8 +1432,12 @@ optional arguments:
                            (org-glossary--export-term term-entry info))
                           (plural-p
                            (setq plural-p nil)
-                           (plist-get canonical-term :term-plural))
-                          (t (plist-get canonical-term :term)))))
+                           (org-glossary--export-term-str
+                            (plist-get canonical-term :term-plural)
+                            (plist-get canonical-term :term-plural-data) info))
+                          (t (org-glossary--export-term-str
+                              (plist-get canonical-term :term)
+                              (plist-get canonical-term :term-data) info)))))
                     (funcall (if capitalized-p #'org-glossary--sentence-case
                                #'identity)
                              (if plural-p
@@ -1423,6 +1475,25 @@ exported in place of the paragraph itself."
                        filtered-value)
                      info)))
                  (plist-get info :exported-data)))))
+
+(defun org-glossary--export-term-str (term-str term-data info)
+  "Export a term as inline Org markup.
+When INFO is non-nil and TERM-DATA is a non-empty element list, wrap
+it in a paragraph, run the backend's parse-tree filters (which handle
+backend-specific concerns such as LaTeX math-block wrapping), and
+export.  Otherwise return TERM-STR as-is."
+  (if (and info term-data)
+      (let ((wrapped (apply #'list 'paragraph nil term-data)))
+        (dolist (child term-data)
+          (when (consp child)
+            (org-element-put-property child :parent wrapped)))
+        (string-trim
+         (org-export-data
+          (org-export-filter-apply-functions
+           (plist-get info :filter-parse-tree)
+           wrapped info)
+          info)))
+    term-str))
 
 (defun org-glossary--sentence-case (s)
   "Return a sentence-cased version of S."
@@ -1773,9 +1844,12 @@ the :consume parameter extracted from KEYWORD."
   (if-let ((term-entry (org-glossary--quicklookup key)))
       (let* ((term (plist-get term-entry :term))
              (capitalised-term
-              (if (string-match-p "^[[:lower:]]+\\(?: \\|$\\)" term)
-                  (org-glossary--sentence-case term)
-                term)))
+              (org-glossary--export-term-str
+               (if (string-match-p "^[[:lower:]]+\\(?: \\|$\\)" term)
+                   (org-glossary--sentence-case term)
+                 term)
+               (plist-get term-entry :term-data)
+               info)))
         (org-glossary--export-instance
          backend info term-entry :definition nil nil nil
          `((?t . ,capitalised-term)
